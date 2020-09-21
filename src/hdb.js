@@ -139,11 +139,21 @@ function hdbHandleError(r) {
 	
 	// otherwise, we need to handle the error.
 	switch (code) {
-	 // TODO: add more specific responses. For now we only have the default!
+	 // NOTE: if needed by spec, add more specific responses.
+	 //  For now we only have the default!
 	 default:
+	 	// output the error we received from HarperDB's response.
+	 	let j = r.getContentText();
+	 	let d = JSON.parse(j);
+	 	let e;
+	 	if("error" in d) {
+	 		e = d.error; // HDB default error codes are text in this key.
+	 	} else {
+	 		e = r.getContentText(); // just in case a non-standard error appears!
+	 	}
 		cc.newUserError()
-			.setText("HarperDB gave HTTP response code " + code "; resolve server error or try again")
-			.setDebugText("Content of response:\n\n" + r.getContentText())
+			.setText('HarperDB response ' + code
+				+ '; error text "' + '"')
 			.throwException();
 	}
 	return; // this should never be reached.
