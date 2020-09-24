@@ -115,25 +115,207 @@ function getConfig(request) {
 				.throwException();
 		}
 	}
-	
-	// stub
 }
 
 function getSchema(request) {
 	// return value gives the basic Schema as generated from the SQL query the connector
-	//  needs to perform. Schema will automatically determine which fields are dimensions
-	//  and which are metrics from the SQL query itself.
+	//  needs to perform. Schema will set all fields as dimensions, and set an additional
+	//  "Record Count" field as a metric. Users can treat any dimension as a metric in
+	//  their reports as of October 2019.
 	// Data types are determined using the first 100 rows of data from the query
 	//  (automatically reduced using LIMIT)
-	// Note that complex data types need to be flattened for the schema, so the rows that
-	//  the SQL query produces may not match the names and number of fields in the GDS
-	//  version of the schema.
 	
-	// all non-Number fields are Dimensions.
-	// the id (hash) field of any table is a Dimension.
-	// any non-id Number field is a Metric, and should be set in Sum mode by default.
+	// TODO: make this return a cached schema, either in UserProperties or Cache Service,
+	//  if we already constructed one and it hasn't expired.
 	
-	// stub
+	// check if we have a cached schema first
+	var cache = CacheService.getUserCache();
+	var schema = cache.get("schema");
+	if(schema != null) {
+		// we already have a schema prepared, so return it
+		return { "schema": schema };
+	}
+	
+	var cgfp = request.configParams;
+	var userp = PropertiesService.getUserProperties();
+	var sql = userp.getProperty("sql");
+	
+	if(!sql) {
+		sql = sqlStrip(cfgp.sql);
+		userp.setProperty("sql", cleansql);
+	}
+	
+	// set LIMIT clause to 100, if existing clause is greater than 100 or not found.
+	if(!userp.getProperty("sqlLimited")) {
+		let o = {};
+		let lsql = sqlLimit(sql, 100, o);
+		if(o.nochange) {
+			userp.setProperty("sqlLimited", true);
+		} else {
+			sql = lsql;
+		}
+	}
+	
+	// run the query on HarperDB, and search through the resulting data
+	
+	var data = hdbSqlQuery(sql, cfgp);
+	var fields = []; // the schema fields, in order, in a simpler format
+	var findex = {}; // the schema field indexes, by name
+	
+	// loop to build fields and index them
+	
+	for(let i=0; i<data.length; i++) {
+		// we can use data.length because HarperDB always returns an array unless there
+		//  is an error.
+		let r = data[i]; // extract record
+		for(int k in r) {
+			// extract each key from the record
+			let t = null;
+			if(k in findex) {
+				// retrieve currently derived type from fields
+				t = fields[findex[k]].type;
+			}
+			if(t == "string") {
+				continue; // string is a catch-all and flattens all other types
+			}
+			if(r[k] == null) {
+				continue; // null values do not affect types
+			}
+			if(typeof r[k] == "number") {
+				if(t && t != "number") {
+					t == "string";
+				} else {
+					t == "number";
+				}
+			} else if(typeof r[k] == "boolean") {
+				if(t && t != "boolean") {
+					t == "string";
+				} else {
+					t == "boolean";
+				}
+			} else if(typeof r[k] == "string") {
+				t == "string"; // we assume AppsScript can autodetect string semantics.
+			} else if(typeof r[k] == "object") {
+				// non-null object
+				if(Array.isArray(r[k])) {
+					// array containing multiple records
+					// TODO: add a capture for this! effectively this is recursive.
+					//  for now, this is an error.
+					cc.newUserError()
+						.setText('Query returned field "' + k
+						  + '" which contains an Array; not yet supported')
+						.throwException();
+				} else if(r[k].type == "Feature" && r[k].geometry != null
+						 && typeof r[k].geometry == "object") {
+						if(r[k].geometry.type == "Point") {
+							// GeoJSON detected of type "Point"
+							t = "geojson-point";
+							// TODO: add other varieties of GeoJSON object capture here
+						} else {
+							cc.newUserError()
+								.setText('Query returned field "' + k
+								  + '" which contains an unsupported GeoJSON geometry type "'
+								  + r[k].geometry.type + '"')
+								.throwException();
+						}
+					
+				} else if(r[k].type == "FeatureCollection" && Array.isArray(r[k].features)) {
+					// TODO: support GeoJSON FeatureCollections, using a modified form of
+					//  the multiple record handling for Arrays.
+					cc.newUserError()
+						.setText('Query returned field "' + k
+						  + '" which contains a GeoJSON FeatureCollection; not yet supported')
+						.throwException();
+				} else {
+					// TODO: implement support for objects contained in a record.
+					//  effectively this is a single record version of the Array capture,
+					//  so it requires a recursive function.
+					//  for now, this is an error.
+					cc.newUserError()
+						.setText('Query returned field "' + k
+						  + '" which contains a raw object record; not yet supported')
+						.throwException();
+				}
+			}
+			// apply type to fields record
+			if(k in findex) {
+				if(t != null && t != fields[findex[k]].type) {
+					fields[findex[k]].type = t;
+				}
+			} else {
+				// add new field
+				fields.push({
+					name: k,
+					type: t,
+					path: "/" + k // TODO: use jsonPtrConstruct() for deep keys
+				});
+				findex[k] = fields.length - 1;
+			}
+		}
+	}
+	
+	schema = [];
+	
+	// loop to form schema from fields
+	for(let i=0; i<findex.length; i++) {
+		let s = {
+			name: fields[i].name,
+			label: fields[i].name,
+			// TODO: define group for data contained inside a field of the JSON response
+			semantics: {
+				conceptType: "DIMENSION" // all returned fields are dimensions
+			}
+		});
+		switch(fields[i].type) {
+		 case null:
+			fields[i].type = "string"; // default to string type for all nulls
+		 case "string":
+		 	s.dataType = "STRING";
+		 	break;
+		 case "number":
+		 	s.dataType = "NUMBER";
+		 	break;
+		 case "boolean":
+		 	s.dataType = "BOOLEAN";
+		 	break;
+		 case "geojson-point":
+		 	// will be converted to a string with "Lat, Long" coordinates.
+		 	s.dataType = "STRING";
+		 	s.semantics.semanticType = "LATITUDE_LONGITUDE";
+		 	break
+		 default:
+		 	// error
+		 	cc.newUserError()
+		 		.setText('Schema detection produced illegal type')
+		 		.setDebugText('This message should never appear! illegal type was "'
+		 			+ fields[i].type + '"')
+		 		.throwException();
+		}
+		schema.push(s);
+	}
+	// finally, add the field for "Record Count", a metric most users will want.
+	schema.push({
+		name: "Record Count",
+		label: "Record Count",
+		dataType: "NUMBER",
+		semantics: {
+			conceptType: "METRIC",
+			semanticType: "NUMBER"
+		}
+	});
+	
+	// store simple fields information to pair with the GDS schema
+	userp.setProperty("fields", fields);
+	userp.setProperty("findex", findex);
+	
+	// cache our schema for 5 minutes at maximum
+	cache.put("schema", schema, 300);
+	
+	// cache data from our query; getData can re-use it for semantic type detection.
+	cache.put("ldata", data, 300);
+	
+	// return the schema to the requester
+	return { "schema": schema };
 }
 
 function getData(request) {
@@ -141,4 +323,7 @@ function getData(request) {
 	// perform the SQL query, and transform the resulting data.
 	
 	// stub
+	// Make sure to check for a cached result, because GDS has a 20 field limit,
+	//  and we may produce far more fields than we can actually provide.
+	// Also note that the max records returned by this function to GDS is 1 million.
 }
