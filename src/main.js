@@ -71,6 +71,12 @@ function getConfig(request) {
 		// reset UserProperties for this data source; they will be set on auth.
 		var userp = PropertiesService.getUserProperties();
 		userp.deleteAllProperties();
+		// also clear the cache, in case anything is left there from previous usage of
+		//  this connector instance.
+		var cache = CacheService.getUserCache();
+		cache.removeAll(["schema", "data", "ldata"])
+		// NOTE: if this connector uses new cache keys, add them to the above list!
+		
 		// send config to the UI.
 		return config.build();
 	} else {
