@@ -131,17 +131,9 @@ function getSchema(request) {
 	// Data types are determined using the first 100 rows of data from the query
 	//  (automatically reduced using LIMIT)
 	
-	// TODO: make this return a cached schema, either in UserProperties or Cache Service,
-	//  if we already constructed one and it hasn't expired.
+	var schema;
 	
-	// check if we have a cached schema first
 	var cache = CacheService.getUserCache();
-	var schema = cache.get("schema");
-	if(schema != null) {
-		// we already have a schema prepared, so return it
-		return { "schema": schema };
-	}
-	
 	var cgfp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = userp.getProperty("sql");
@@ -162,9 +154,12 @@ function getSchema(request) {
 		}
 	}
 	
-	// run the query on HarperDB, and search through the resulting data
-	
-	var data = hdbSqlQuery(sql, cfgp);
+	// run the query on HarperDB, or get cached result of previous query,
+	//  and search through the resulting data
+	var data = cache.get("ldata");
+	if(data == null) {
+		data = hdbSqlQuery(sql, cfgp);
+	}
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
 	
@@ -255,7 +250,7 @@ function getSchema(request) {
 					type: t,
 					path: "/" + k // TODO: use jsonPtrConstruct() for deep keys
 				});
-				findex[k] = fields.length - 1;
+				findex[k] = fields.length - 1; // TODO: handle insertions for deep keys
 			}
 		}
 	}
@@ -263,7 +258,7 @@ function getSchema(request) {
 	schema = [];
 	
 	// loop to form schema from fields
-	for(let i=0; i<findex.length; i++) {
+	for(let i=0; i<fields.length; i++) {
 		let s = {
 			name: fields[i].name,
 			label: fields[i].name,
@@ -314,8 +309,8 @@ function getSchema(request) {
 	userp.setProperty("fields", fields);
 	userp.setProperty("findex", findex);
 	
-	// cache our schema for 5 minutes at maximum
-	cache.put("schema", schema, 300);
+	// insert schema into properties field; more stable than cache.
+	userp.setProperty("schema", schema);
 	
 	// cache data from our query; getData can re-use it for semantic type detection.
 	cache.put("ldata", data, 300);
@@ -328,8 +323,9 @@ function getData(request) {
 	// return value produces JSON in a format Data Studio understands.
 	// perform the SQL query, and transform the resulting data.
 	
-	// stub
 	// Make sure to check for a cached result, because GDS has a 20 field limit,
 	//  and we may produce far more fields than we can actually provide.
 	// Also note that the max records returned by this function to GDS is 1 million.
+	
+	// stub
 }
