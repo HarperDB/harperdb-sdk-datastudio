@@ -327,5 +327,74 @@ function getData(request) {
 	//  and we may produce far more fields than we can actually provide.
 	// Also note that the max records returned by this function to GDS is 1 million.
 	
-	// stub
+	var cache = CacheService.getUserCache();
+	
+	var cgfp = request.configParams;
+	var userp = PropertiesService.getUserProperties();
+	var sql = userp.getProperty("sql");
+	
+	var data; // data to receive from cache or from a new HarperDB query
+	if(request.scriptParams.sampleExtraction) {
+		// this is semantic type detection, so we only need 100 records
+		data = cache.get("ldata");
+		if(data == null) {
+			// ensure sql contains limit 100
+			if(!userp.getProperty("sqlLimited")) {
+				sql = sqlLimit(sql, 100);
+			}
+		}
+	} else {
+		data = cache.get("data");
+	}
+	if(data == null) {
+		// fetch data from HarperDB
+		data = hdbSqlQuery(sql, cfgp);
+	}
+	
+	// fetch the schema properties we need
+	var fields = userp.getProperty("fields");
+	var findex = userp.getProperty("findex");
+	var schema = userp.getProperty("schema");
+	// and retrieve the set of fields the request wants.
+	var fetch = request.fields;
+	var gdata = [];
+	var gschema = [];
+	
+	// produce GDS schema for only the requested fields.
+	for(let i=0; i<fetch.length; i++) {
+		// get the name from the requested field, then get the index in the schema list
+		//  for that name. use that to retrieve the field data from the schema.
+		gschema.push(schema[findex[fetch[i].name]]);
+	}
+	
+	// loop through data records, and transform data for each field in the request.
+	for(let i=0; i<data.length; i++) {
+		let values = [];
+		gdata.push({"values": values});
+		for(let j=0; j<fetch.length; j++) {
+			// transform data in each field
+			let f = fields[findex[fetch[j].name]];
+			let val = jsonPtrQuery(data[i], f.path);
+			if(f.type == "geojson-point") {
+				// extract Lat,Long from Point and join
+				let coord = val.geometry.coordinates;
+				val = coord.join(', ');
+			}
+			values.push(val);
+		}
+		// TODO: add method for handling multi-row values
+	}
+	
+	// cache data.
+	if(request.scriptParams.sampleExtraction) {
+		cache.put("ldata", data);
+	} else {
+		cache.put("data", data);
+	}
+	
+	// return result to requester
+	return {
+		"schema": gschema,
+		"rows": gdata
+	};
 }
