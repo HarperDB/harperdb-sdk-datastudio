@@ -362,18 +362,34 @@ function getData(request) {
 	
 	// produce GDS schema for only the requested fields.
 	for(let i=0; i<fetch.length; i++) {
-		// get the name from the requested field, then get the index in the schema list
-		//  for that name. use that to retrieve the field data from the schema.
-		gschema.push(schema[findex[fetch[i].name]]);
+		if(fetch[i].name == "Record Count") {
+			// fetch the Record Count metric, which is always at the end.
+			gschema.push(schema[schema.length-1]);
+		} else {
+			// get the name from the requested field, then get the index in the schema
+			//  list for that name. use that to retrieve the field data from the schema.
+			gschema.push(schema[findex[fetch[i].name]]);
+		}
 	}
 	
 	// loop through data records, and transform data for each field in the request.
-	for(let i=0; i<data.length; i++) {
+	let rmax = 1000000; // GDS maximum records returnable is 1 million
+	if(data.length < rmax) {
+		rmax = data.length;
+	}
+	for(let i=0; i<rmax; i++) {
 		let values = [];
 		gdata.push({"values": values});
 		for(let j=0; j<fetch.length; j++) {
 			// transform data in each field
-			let f = fields[findex[fetch[j].name]];
+			let f;
+			if(fetch[j].name == "Record Count") {
+				// Record Count is always 1 for every row (sum it!)
+				values.push(1);
+				continue;
+			} else {
+				f = fields[findex[fetch[j].name]];
+			}
 			let val = jsonPtrQuery(data[i], f.path);
 			if(f.type == "geojson-point") {
 				// extract Lat,Long from Point and join
