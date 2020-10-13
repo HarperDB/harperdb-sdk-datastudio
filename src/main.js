@@ -400,7 +400,11 @@ function getData(request) {
 				f = fields[findex[fetch[j].name]];
 			}
 			let val = jsonPtrQuery(data[i], f.path);
-			if(f.type == "geojson-point") {
+			if(f.type == "geojson-point" || (f.type == "string" && val != null
+			  && typeof val == "object" && val.type == "Feature"
+			  && val.geometry != null && typeof val.geometry == "object"
+			  && val.geometry.type == "Point")) {
+				// detected a Point;
 				// extract Lat,Long from Point and join
 				let coord = val.geometry.coordinates;
 				val = coord.join(', ');
