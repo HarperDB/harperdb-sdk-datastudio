@@ -189,15 +189,15 @@ function getSchema(request) {
 			}
 			if(typeof r[k] == "number") {
 				if(t && t != "number") {
-					t == "string";
+					t = "string";
 				} else {
-					t == "number";
+					t = "number";
 				}
 			} else if(typeof r[k] == "boolean") {
 				if(t && t != "boolean") {
-					t == "string";
+					t = "string";
 				} else {
-					t == "boolean";
+					t = "boolean";
 				}
 			} else if(typeof r[k] == "string") {
 				t == "string"; // we assume AppsScript can autodetect string semantics.
@@ -215,7 +215,11 @@ function getSchema(request) {
 						 && typeof r[k].geometry == "object") {
 						if(r[k].geometry.type == "Point") {
 							// GeoJSON detected of type "Point"
-							t = "geojson-point";
+							if(t && t != "geojson-point") {
+								t = "string";
+							} else {
+								t = "geojson-point";
+							}
 							// TODO: add other varieties of GeoJSON object capture here
 						} else {
 							cc.newUserError()
