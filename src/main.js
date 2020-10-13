@@ -139,8 +139,13 @@ function getSchema(request) {
 	var sql = userp.getProperty("sql");
 	
 	if(!sql) {
-		sql = sqlStrip(cfgp.sql);
-		userp.setProperty("sql", cleansql);
+		if(cfgp.sql) {
+			sql = sqlStrip(cfgp.sql);
+		} else {
+			// construct sql from schema and table pair
+			sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
+		}
+		userp.setProperty("sql", sql);
 	}
 	
 	// set LIMIT clause to 100, if existing clause is greater than 100 or not found.
