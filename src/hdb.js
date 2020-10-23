@@ -171,7 +171,7 @@ function hdbSqlQuery(sql, cfgp) {
 	var body = {
 		"operation": "sql",
 		"sql": sql
-	}
+	};
 	
 	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText);
@@ -189,7 +189,7 @@ function hdbDescribeSchema(schema, cfgp) {
 	var body = {
 		"operation": "describe_schema",
 		"schema": schema
-	}
+	};
 	
 	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText);
@@ -210,7 +210,7 @@ function hdbDescribeTable(schema, table, cfgp) {
 		"operation": "describe_table",
 		"schema": schema,
 		"table": table
-	}
+	};
 	
 	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText);
