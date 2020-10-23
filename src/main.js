@@ -50,7 +50,7 @@ function getConfig(request) {
 			.setValue("SQL"))
 		.addOption(config.newOptionBuilder()
 			.setLabel("Table")
-			.setValue("TABLE"));
+			.setValue("TABLE"))
 		.setIsDynamic(true);
 	var cfgSecure = config.newCheckbox()
 		.setID("secure")
@@ -174,7 +174,7 @@ function getSchema(request) {
 		// we can use data.length because HarperDB always returns an array unless there
 		//  is an error.
 		let r = data[i]; // extract record
-		for(int k in r) {
+		for(k in r) {
 			// extract each key from the record
 			let t = null;
 			if(k in findex) {
@@ -275,7 +275,7 @@ function getSchema(request) {
 			semantics: {
 				conceptType: "DIMENSION" // all returned fields are dimensions
 			}
-		});
+		};
 		switch(fields[i].type) {
 		 case null:
 			fields[i].type = "string"; // default to string type for all nulls

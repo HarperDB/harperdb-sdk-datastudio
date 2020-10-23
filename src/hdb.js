@@ -194,7 +194,6 @@ function hdbDescribeSchema(schema, cfgp) {
 	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText);
 }
-}
 
 function hdbDescribeTable(schema, table, cfgp) {
 	// takes a schema name, a table name,
