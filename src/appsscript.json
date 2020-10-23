@@ -2,7 +2,7 @@
   "runtimeVersion": "V8",
   "dataStudio": {
     "name": "HarperDB",
-    "logoUrl": "https://github.com/HarperDB/harperdb-sdk-datastudio/tree/first-version/img/harperdb-icon-40x40.png",
+    "logoUrl": "https://raw.githubusercontent.com/HarperDB/harperdb-sdk-datastudio/first-version/img/harperdb-icon-40x40.png",
     "company": "HarperDB Inc.",
     "companyUrl": "https://harperdb.io/",
     "addonUrl": "https://github.com/HarperDB/harperdb-sdk-datastudio",
