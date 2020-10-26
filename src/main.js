@@ -13,6 +13,12 @@ function getAuthType() {
 	 .build();
 }
 
+function isAdminUser() {
+	// return true if this is a debug build;
+	// return false if this is a release build.
+	return true;
+}
+
 function getConfig(request) {
 	// return value generates a configuration page. this will be in multiple steps.
 	// the first step is always to get the user's URL for connecting to the database, and
