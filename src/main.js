@@ -36,19 +36,19 @@ function getConfig(request) {
 	
 	// BUILD first page here!
 	var cfgUrl = config.newTextInput()
-		.setID("url")
+		.setId("url")
 		.setName("Web URL")
 		.setHelpText("The URL of your HarperDB instance's API gateway")
 	//	.setPlaceholder("this should contain a trailing https url for the HarperDB cloud")
 		.setIsDynamic(true);
 	var cfgKey = config.newTextInput()
-		.setID("key")
+		.setId("key")
 		.setName("Basic Auth Key")
 		.setHelpText("The Basic Authorization Key for your read access to the DB")
 		.setPlaceholder("r9UzYUgX99PRpWcp50t4t8AAFA==") // random data, not a usable key
 		.setIsDynamic(true);
 	var cfgQueryType = config.newSelectSingle()
-		.setID("queryType")
+		.setId("queryType")
 		.setName("Query Type")
 		.setHelpText("Either Schema.Table for simple SELECT * on that table, or SQL for freeform")
 		.addOption(config.newOptionBuilder()
@@ -59,12 +59,12 @@ function getConfig(request) {
 			.setValue("TABLE"))
 		.setIsDynamic(true);
 	var cfgSecure = config.newCheckbox()
-		.setID("secure")
+		.setId("secure")
 		.setName("Secure Connections Only?")
 		.setHelpText("If checked, only HTTPS connections will be made to the server.")
 		.setIsDynamic(true);
 	var cfgBadCert = config.newCheckbox()
-		.setID("badCert")
+		.setId("badCert")
 		.setName("Allow Bad Certs?")
 		.setHelpText("If checked, HTTPS connections will work even for unverifiable certificates.")
 		.setIsDynamic(true);
@@ -96,7 +96,7 @@ function getConfig(request) {
 		if(cfgp.queryType == "SQL") {
 			// add a field for SQL query
 			var cfgSql = config.newTextInput()
-				.setID("sql")
+				.setId("sql")
 				.setName("SQL Query")
 				.setHelpText("The SQL Query to HarperDB")
 				.setPlaceholder("SELECT ...");
@@ -105,13 +105,13 @@ function getConfig(request) {
 		} else if(cfgp.queryType == "TABLE") {
 			// add two fields, one for Schema and one for Table.
 			var cfgSchema = config.newTextInput()
-				.setID("schema")
+				.setId("schema")
 				.setName("Schema")
 				.setHelpText("The HarperDB Schema (not Data Studio Schema)")
 				.setPlaceholder("dev");
 			// Q: should we offer a drop-down Schema instead of text entry?
 			var cfgTable = config.newTextInput()
-				.setID("table")
+				.setId("table")
 				.setName("Table")
 				.setHelpText("The Table to SELECT * from in this Schema");
 			// Q: should we make an additional step to configuration here, where Schema
