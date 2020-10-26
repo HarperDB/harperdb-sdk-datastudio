@@ -100,7 +100,7 @@ function authForHDB(cfgp) {
 	return auth;
 }
 
-function hdbHttpRequest(url, auth, body) {
+function hdbHttpRequest(cfgp, url, auth, body) {
 	// takes a URL, Auth Key, and JSON body to send to HarperDB in a POST request.
 	// returns the body of the request.
 	
@@ -173,7 +173,7 @@ function hdbSqlQuery(sql, cfgp) {
 		"sql": sql
 	};
 	
-	var r = hdbHttpRequest(url, auth, body);
+	var r = hdbHttpRequest(cfgp, url, auth, body);
 	return JSON.parse(r.getContentText);
 }
 
@@ -191,7 +191,7 @@ function hdbDescribeSchema(schema, cfgp) {
 		"schema": schema
 	};
 	
-	var r = hdbHttpRequest(url, auth, body);
+	var r = hdbHttpRequest(cfgp, url, auth, body);
 	return JSON.parse(r.getContentText);
 }
 
@@ -211,6 +211,6 @@ function hdbDescribeTable(schema, table, cfgp) {
 		"table": table
 	};
 	
-	var r = hdbHttpRequest(url, auth, body);
+	var r = hdbHttpRequest(cfgp, url, auth, body);
 	return JSON.parse(r.getContentText);
 }
