@@ -40,13 +40,19 @@ function getConfig(request) {
 		.setName("Web URL")
 		.setHelpText("The URL of your HarperDB instance's API gateway")
 	//	.setPlaceholder("this should contain a trailing https url for the HarperDB cloud")
-		.setIsDynamic(true);
 	var cfgKey = config.newTextInput()
 		.setId("key")
 		.setName("Basic Auth Key")
 		.setHelpText("The Basic Authorization Key for your read access to the DB")
 		.setPlaceholder("dXNlcjpwYXNzd29yZA==") // user:password in base64
-		.setIsDynamic(true);
+	var cfgSecure = config.newCheckbox()
+		.setId("secure")
+		.setName("Secure Connections Only?")
+		.setHelpText("If checked, only HTTPS connections will be made to the server.")
+	var cfgBadCert = config.newCheckbox()
+		.setId("badCert")
+		.setName("Allow Bad Certs?")
+		.setHelpText("If checked, HTTPS connections will work even for unverifiable certificates.")
 	var cfgQueryType = config.newSelectSingle()
 		.setId("queryType")
 		.setName("Query Type")
@@ -57,17 +63,8 @@ function getConfig(request) {
 		.addOption(config.newOptionBuilder()
 			.setLabel("Table")
 			.setValue("TABLE"))
-		.setIsDynamic(true);
-	var cfgSecure = config.newCheckbox()
-		.setId("secure")
-		.setName("Secure Connections Only?")
-		.setHelpText("If checked, only HTTPS connections will be made to the server.")
-		.setIsDynamic(true);
-	var cfgBadCert = config.newCheckbox()
-		.setId("badCert")
-		.setName("Allow Bad Certs?")
-		.setHelpText("If checked, HTTPS connections will work even for unverifiable certificates.")
-		.setIsDynamic(true);
+		.setIsDynamic(true); // this acts as a cutoff, resetting anything after it
+				// and deleting it from the UI until user presses "next" button
 	
 	if(!('configParams' in request) || !request.configParams.queryType) {
 		// first page, nothing more to build.
