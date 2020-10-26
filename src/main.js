@@ -45,7 +45,7 @@ function getConfig(request) {
 		.setId("key")
 		.setName("Basic Auth Key")
 		.setHelpText("The Basic Authorization Key for your read access to the DB")
-		.setPlaceholder("r9UzYUgX99PRpWcp50t4t8AAFA==") // random data, not a usable key
+		.setPlaceholder("dXNlcjpwYXNzd29yZA==") // user:password in base64
 		.setIsDynamic(true);
 	var cfgQueryType = config.newSelectSingle()
 		.setId("queryType")
