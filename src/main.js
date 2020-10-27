@@ -137,7 +137,7 @@ function getSchema(request) {
 	var schema;
 	
 	var cache = CacheService.getUserCache();
-	var cgfp = request.configParams;
+	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = userp.getProperty("sql");
 	
@@ -341,7 +341,7 @@ function getData(request) {
 	
 	var cache = CacheService.getUserCache();
 	
-	var cgfp = request.configParams;
+	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = userp.getProperty("sql");
 	

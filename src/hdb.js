@@ -176,7 +176,7 @@ function hdbSqlQuery(sql, cfgp) {
 	};
 	
 	var r = hdbHttpRequest(cfgp, url, auth, body);
-	return JSON.parse(r.getContentText);
+	return JSON.parse(r.getContentText());
 }
 
 function hdbDescribeSchema(schema, cfgp) {
@@ -194,7 +194,7 @@ function hdbDescribeSchema(schema, cfgp) {
 	};
 	
 	var r = hdbHttpRequest(cfgp, url, auth, body);
-	return JSON.parse(r.getContentText);
+	return JSON.parse(r.getContentText());
 }
 
 function hdbDescribeTable(schema, table, cfgp) {
@@ -214,7 +214,7 @@ function hdbDescribeTable(schema, table, cfgp) {
 	};
 	
 	var r = hdbHttpRequest(cfgp, url, auth, body);
-	return JSON.parse(r.getContentText);
+	return JSON.parse(r.getContentText());
 }
 
 function hdbDescribeAll(cfgp) {
@@ -231,5 +231,5 @@ function hdbDescribeAll(cfgp) {
 	}
 	
 	var r = hdbHttpRequest(cfgp, url, auth, body);
-	return JSON.parse(r.getContentText);
+	return JSON.parse(r.getContentText());
 }
