@@ -9,6 +9,7 @@ function urlForHDB(cfgp) {
 	
 	var userp = PropertiesService.getUserProperties();
 	var url = userp.getProperty("url");
+	var cc = DataStudioApp.createCommunityConnector();
 	
 	if(url == null) {
 		// url not currently defined; get it from config params
@@ -17,7 +18,6 @@ function urlForHDB(cfgp) {
 			// error
 			cc.newUserError()
 				.setText("URL not defined, cannot access HarperDB")
-				.setDebugText("This message should never appear!")
 				.throwException();
 		}
 		if(typeof url != "string") {
@@ -30,7 +30,7 @@ function urlForHDB(cfgp) {
 		
 		url = url.trim(); // remove whitespace from both ends
 		var urlScheme = /^[a-z][a-z+.-]*:/;
-		if(url.search(urlScheme)) { // if the URL starts with a scheme
+		if(url.search(urlScheme) != -1) { // if the URL starts with a scheme
 			if(!url.startsWith("http://") && !url.startsWith("https://")) {
 				// and that scheme is neither http nor https, error!
 				cc.newUserError()
@@ -66,6 +66,7 @@ function authForHDB(cfgp) {
 	
 	var userp = PropertiesService.getUserProperties();
 	var auth = userp.getProperty("auth");
+	var cc = DataStudioApp.createCommunityConnector();
 	
 	if(auth == null) {
 		// auth token not currently defined; get it from config params
@@ -74,7 +75,6 @@ function authForHDB(cfgp) {
 			// error
 			cc.newUserError()
 				.setText("Auth key not defined, cannot access HarperDB")
-				.setDebugText("This message should never appear!")
 				.throwException();
 		}
 		if(typeof auth != "string") {
@@ -131,6 +131,7 @@ function hdbHandleError(r) {
 	// returns nothing
 	// will throw a user error to GDS if the response code is not 200.
 	
+	var cc = DataStudioApp.createCommunityConnector();
 	var code = r.getResponseCode();
 	
 	if(code == 200) {
@@ -153,7 +154,7 @@ function hdbHandleError(r) {
 	 	}
 		cc.newUserError()
 			.setText('HarperDB response ' + code
-				+ '; error text "' + '"')
+				+ '; error text "' + e + '"')
 			.throwException();
 	}
 	return; // this should never be reached.
