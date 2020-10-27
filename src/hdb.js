@@ -101,7 +101,8 @@ function authForHDB(cfgp) {
 }
 
 function hdbHttpRequest(cfgp, url, auth, body) {
-	// takes a URL, Auth Key, and JSON body to send to HarperDB in a POST request.
+	// takes the config params for the connector, the URL, Auth Key,
+	// and JSON body to send to HarperDB in a POST request.
 	// returns the body of the request.
 	
 	var opt = {
@@ -211,6 +212,23 @@ function hdbDescribeTable(schema, table, cfgp) {
 		"schema": schema,
 		"table": table
 	};
+	
+	var r = hdbHttpRequest(cfgp, url, auth, body);
+	return JSON.parse(r.getContentText);
+}
+
+function hdbDescribeAll(cfgp) {
+	// takes the configParams from the current GDS operation.
+	// performs a Describe All operation on HarperDB
+	// returns the JSON output from HarperDB as an object.
+	
+	var url = urlForHDB(cfgp);
+	var auth = authForHDB(cfgp);
+	
+	// form the request
+	var body = {
+		"operation": "describe_all"
+	}
 	
 	var r = hdbHttpRequest(cfgp, url, auth, body);
 	return JSON.parse(r.getContentText);
