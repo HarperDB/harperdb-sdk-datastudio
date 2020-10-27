@@ -85,7 +85,7 @@ function getConfig(request) {
 	} else {
 		// test that user authorization is working!
 		var cfgp = request.configParams;
-		var schemasJson = hdbSqlQuery("SHOW SCHEMAS",cfgp);
+		var schemasJson = hdbDescribeAll(cfgp); // get data on all schemas
 		// if the above function throws an error, the error will flow through to GDS.
 		
 		// if the authorization works, use the response to queryType to determine which
