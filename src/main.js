@@ -180,7 +180,7 @@ function getSchema(request) {
 		let r = data[i]; // extract record
 		for(k in r) {
 			// extract each key from the record
-			let t = null; // TODO IMMEDIATELY fix this entire section! it is wrong!
+			let t = null;
 			if(k in findex) {
 				// retrieve currently derived type from fields
 				t = fields[findex[k]].type;
@@ -204,7 +204,7 @@ function getSchema(request) {
 					t = "boolean";
 				}
 			} else if(typeof r[k] == "string") {
-				t == "string"; // we assume AppsScript can autodetect string semantics.
+				t = "string"; // we assume AppsScript can autodetect string semantics.
 			} else if(typeof r[k] == "object") {
 				// non-null object
 				if(Array.isArray(r[k])) {
