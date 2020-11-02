@@ -171,6 +171,7 @@ function getSchema(request) {
 	}
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
+	var llr = /^-?\d+(\.\d*)?,\s*-?\d+(\.\d*)?$/; // Lat,Long string capture
 	
 	// loop to build fields and index them
 	
@@ -204,7 +205,12 @@ function getSchema(request) {
 					t = "boolean";
 				}
 			} else if(typeof r[k] == "string") {
-				t = "string"; // we assume AppsScript can autodetect string semantics.
+				// test for Lat,Long string
+				if(r[k].match(llr)) {
+					t = "geojson-point"; // equivalent to a Point in output.
+				} else {
+					t = "string";
+				}
 			} else if(typeof r[k] == "object") {
 				// non-null object
 				if(Array.isArray(r[k])) {
@@ -307,10 +313,12 @@ function getSchema(request) {
 		}
 		schema.push(s);
 	}
-	// finally, add the field for "Record Count", a metric most users will want.
+	// finally, add the field for "RecordCount", a metric most users will want.
+	// unlike in BigQuery standard, you can't have a space here, because standard
+	// GDS connectors aren't allowed to use spaces in fields (it crashes reports!)
 	schema.push({
-		name: "Record Count",
-		label: "Record Count",
+		name: "RecordCount",
+		label: "RecordCount",
 		dataType: "NUMBER",
 		semantics: {
 			conceptType: "METRIC",
@@ -380,7 +388,7 @@ function getData(request) {
 	
 	// produce GDS schema for only the requested fields.
 	for(let i=0; i<fetch.length; i++) {
-		if(fetch[i].name == "Record Count") {
+		if(fetch[i].name == "RecordCount") {
 			// fetch the Record Count metric, which is always at the end.
 			gschema.push(schema[schema.length-1]);
 		} else {
@@ -401,7 +409,7 @@ function getData(request) {
 		for(let j=0; j<fetch.length; j++) {
 			// transform data in each field
 			let f;
-			if(fetch[j].name == "Record Count") {
+			if(fetch[j].name == "RecordCount") {
 				// Record Count is always 1 for every row (sum it!)
 				values.push(1);
 				continue;
@@ -409,14 +417,16 @@ function getData(request) {
 				f = fields[findex[fetch[j].name]];
 			}
 			let val = jsonPtrQuery(data[i], f.path);
-			if(f.type == "geojson-point" || (f.type == "string" && val != null
+			if((f.type == "geojson-point" || f.type == "string") && val != null
 			  && typeof val == "object" && val.type == "Feature"
 			  && val.geometry != null && typeof val.geometry == "object"
-			  && val.geometry.type == "Point")) {
+			  && val.geometry.type == "Point") {
 				// detected a Point;
 				// extract Lat,Long from Point and join
 				let coord = val.geometry.coordinates;
-				val = coord.join(', ');
+				val = coord.join(',');
+			} else if(f.type == "string") {
+				val = val.toString();
 			}
 			values.push(val);
 		}
