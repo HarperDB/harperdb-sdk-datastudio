@@ -38,7 +38,7 @@ function jsonPtrQuery(obj, ptr, ind) {
 	var p;
 	if(ptr.startsWith("/")) {
 		// the first slash is optional; get rid of it to prevent a spurious "".
-		p = ptr.splice(1).split("/");
+		p = ptr.slice(1).split("/");
 	} else {
 		p = ptr.split("/");
 	}
