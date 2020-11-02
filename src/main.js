@@ -71,14 +71,7 @@ function getConfig(request) {
 		// second check above is in case the user changed something that wiped out
 		//  the query type.
 		config.setIsSteppedConfig(true);
-		// reset UserProperties for this data source; they will be set on auth.
-		var userp = PropertiesService.getUserProperties();
-		userp.deleteAllProperties();
-		// also clear the cache, in case anything is left there from previous usage of
-		//  this connector instance.
-		var cache = CacheService.getUserCache();
-		cache.removeAll(["schema", "data", "ldata"])
-		// NOTE: if this connector uses new cache keys, add them to the above list!
+		clearSavedData();
 		
 		// send config to the UI.
 		return config.build();
@@ -139,16 +132,19 @@ function getSchema(request) {
 	var cache = CacheService.getUserCache();
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
-	var sql = userp.getProperty("sql");
+	var sql;
+	var nocache = false;
 	
-	if(!sql) {
-		if(cfgp.sql) {
-			sql = sqlStrip(cfgp.sql);
-		} else {
-			// construct sql from schema and table pair
-			sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
-		}
+	if(cfgp.sql) {
+		sql = sqlStrip(cfgp.sql);
+	} else {
+		// construct sql from schema and table pair
+		sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
+	}
+	if(sql != userp.getProperty("sql")) {
+		clearSavedData();
 		userp.setProperty("sql", sql);
+		nocache = true;
 	}
 	
 	// set LIMIT clause to 100, if existing clause is greater than 100 or not found.
@@ -164,9 +160,14 @@ function getSchema(request) {
 	
 	// run the query on HarperDB, or get cached result of previous query,
 	//  and search through the resulting data
-	var data = cache.get("ldata");
+	var data;
+	if(!nocache) {
+		data = cache.get("ldata");
+	}
 	if(data == null) {
 		data = hdbSqlQuery(sql, cfgp);
+	} else {
+		data = JSON.parse(data);
 	}
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
@@ -179,7 +180,7 @@ function getSchema(request) {
 		let r = data[i]; // extract record
 		for(k in r) {
 			// extract each key from the record
-			let t = null;
+			let t = null; // TODO IMMEDIATELY fix this entire section! it is wrong!
 			if(k in findex) {
 				// retrieve currently derived type from fields
 				t = fields[findex[k]].type;
@@ -318,14 +319,14 @@ function getSchema(request) {
 	});
 	
 	// store simple fields information to pair with the GDS schema
-	userp.setProperty("fields", fields);
-	userp.setProperty("findex", findex);
+	userp.setProperty("fields", JSON.stringify(fields));
+	userp.setProperty("findex", JSON.stringify(findex));
 	
 	// insert schema into properties field; more stable than cache.
-	userp.setProperty("schema", schema);
+	userp.setProperty("schema", JSON.stringify(schema));
 	
 	// cache data from our query; getData can re-use it for semantic type detection.
-	cache.put("ldata", data, 300);
+	cache.put("ldata", JSON.stringify(data), 300);
 	
 	// return the schema to the requester
 	return { "schema": schema };
@@ -354,9 +355,14 @@ function getData(request) {
 			if(!userp.getProperty("sqlLimited")) {
 				sql = sqlLimit(sql, 100);
 			}
+		} else {
+			data = JSON.parse(data);
 		}
 	} else {
 		data = cache.get("data");
+		if(data != null) {
+			data = JSON.parse(data);
+		}
 	}
 	if(data == null) {
 		// fetch data from HarperDB
@@ -364,9 +370,9 @@ function getData(request) {
 	}
 	
 	// fetch the schema properties we need
-	var fields = userp.getProperty("fields");
-	var findex = userp.getProperty("findex");
-	var schema = userp.getProperty("schema");
+	var fields = JSON.parse(userp.getProperty("fields"));
+	var findex = JSON.parse(userp.getProperty("findex"));
+	var schema = JSON.parse(userp.getProperty("schema"));
 	// and retrieve the set of fields the request wants.
 	var fetch = request.fields;
 	var gdata = [];
@@ -419,9 +425,9 @@ function getData(request) {
 	
 	// cache data.
 	if(request.scriptParams.sampleExtraction) {
-		cache.put("ldata", data);
+		cache.put("ldata", JSON.stringify(data));
 	} else {
-		cache.put("data", data);
+		cache.put("data", JSON.stringify(data));
 	}
 	
 	// return result to requester
@@ -429,4 +435,14 @@ function getData(request) {
 		"schema": gschema,
 		"rows": gdata
 	};
+}
+
+function clearSavedData() {// reset UserProperties for this data source; they will be set on auth.
+	var userp = PropertiesService.getUserProperties();
+	userp.deleteAllProperties();
+	// clear the cache, in case anything is left there from previous usage of
+	//  this connector instance (previous )
+	var cache = CacheService.getUserCache();
+	cache.removeAll(["schema", "data", "ldata"])
+	// NOTE: if this connector uses new cache keys, add them to the above list!
 }
