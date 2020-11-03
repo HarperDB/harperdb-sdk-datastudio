@@ -16,7 +16,7 @@ function getAuthType() {
 function isAdminUser() {
 	// return true if this is a debug build;
 	// return false if this is a release build.
-	return true;
+	return false;
 }
 
 function getConfig(request) {
