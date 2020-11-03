@@ -206,7 +206,7 @@ function getSchema(request) {
 				}
 			} else if(typeof r[k] == "string") {
 				// test for Lat,Long string
-				if(r[k].match(llr)) {
+				if((t == null || t == "geojson-point") && r[k].match(llr)) {
 					t = "geojson-point"; // equivalent to a Point in output.
 				} else {
 					t = "string";
