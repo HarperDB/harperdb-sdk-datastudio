@@ -7,7 +7,7 @@ As long as your database can be accessed from the internet, this connector can r
 
 1. Log in to https://datastudio.google.com/
 2. Add a new Data Source using the HarperDB connector. The current release version can be added as a data source by following this link:
-https://datastudio.google.com/datasources/create?connectorId=AKfycbxavDMaQMZOGbGKIE2YWfTOvIECF6UAQ7VprYG5R9TsKfE1mlQ7C0h6IcVR_FIm-66TKA
+https://datastudio.google.com/datasources/create?connectorId=AKfycbxQczoR6x96GbQEnkqZpvRTb5FoobNpMSIi-LEjo8hTyOSR916s5Gl31lhNuBafmSzX5A
 3. Authorize the connector to access other servers on your behalf (this allows the connector to contact your database)
 4. Enter the Web URL to access your database (preferably with https!), as well as the Basic Auth key you use to access the database.
 Just include the key, not the word "Basic" at the start of it.
