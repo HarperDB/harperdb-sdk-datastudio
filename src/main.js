@@ -85,7 +85,7 @@ function getConfig(request) {
 		//  page we display to the user.
 		if(cfgp.queryType == "SQL") {
 			// add a field for SQL query
-			var cfgSql = config.newTextInput()
+			var cfgSql = config.newTextArea()
 				.setId("sql")
 				.setName("SQL Query")
 				.setHelpText("The SQL Query to HarperDB")
