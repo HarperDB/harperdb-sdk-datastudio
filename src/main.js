@@ -71,7 +71,6 @@ function getConfig(request) {
 		// second check above is in case the user changed something that wiped out
 		//  the query type.
 		config.setIsSteppedConfig(true);
-		clearSavedData();
 		
 		// send config to the UI.
 		return config.build();
@@ -129,46 +128,16 @@ function getSchema(request) {
 	
 	var schema;
 	
-	var cache = CacheService.getUserCache();
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
-	var sql;
-	var nocache = false;
-	
-	if(cfgp.sql) {
-		sql = sqlStrip(cfgp.sql);
-	} else {
-		// construct sql from schema and table pair
-		sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
-	}
-	if(sql != userp.getProperty("sql")) {
-		clearSavedData();
-		userp.setProperty("sql", sql);
-		nocache = true;
-	}
+	var sql = getSqlFromConfig(cfgp);
 	
 	// set LIMIT clause to 100, if existing clause is greater than 100 or not found.
-	if(!userp.getProperty("sqlLimited")) {
-		let o = {};
-		let lsql = sqlLimit(sql, 100, o);
-		if(o.nochange) {
-			userp.setProperty("sqlLimited", true);
-		} else {
-			sql = lsql;
-		}
-	}
+	var o = {};
+	sql = sqlLimit(sql, 100, o);
 	
-	// run the query on HarperDB, or get cached result of previous query,
-	//  and search through the resulting data
-	var data;
-	if(!nocache) {
-		data = cache.get("ldata");
-	}
-	if(data == null) {
-		data = hdbSqlQuery(sql, cfgp);
-	} else {
-		data = JSON.parse(data);
-	}
+	// run the query on HarperDB, and search through the resulting data
+	var data = hdbSqlQuery(sql, cfgp);
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
 	var llr = /^-?\d+(\.\d*)?,\s*-?\d+(\.\d*)?$/; // Lat,Long string capture
@@ -326,15 +295,15 @@ function getSchema(request) {
 		}
 	});
 	
+	// get our hash prefix for persistent storage
+	var pfx = getHashFromConfig(cfgp) + ":";
+	
 	// store simple fields information to pair with the GDS schema
-	userp.setProperty("fields", JSON.stringify(fields));
-	userp.setProperty("findex", JSON.stringify(findex));
+	userp.setProperty(pfx + "fields", JSON.stringify(fields));
+	userp.setProperty(pfx + "findex", JSON.stringify(findex));
 	
-	// insert schema into properties field; more stable than cache.
-	userp.setProperty("schema", JSON.stringify(schema));
-	
-	// cache data from our query; getData can re-use it for semantic type detection.
-	cache.put("ldata", JSON.stringify(data), 300);
+	// insert schema into properties field
+	userp.setProperty(pfx + "schema", JSON.stringify(schema));
 	
 	// return the schema to the requester
 	return { "schema": schema };
@@ -344,43 +313,34 @@ function getData(request) {
 	// return value produces JSON in a format Data Studio understands.
 	// perform the SQL query, and transform the resulting data.
 	
-	// Make sure to check for a cached result, because GDS has a 20 field limit,
-	//  and we may produce far more fields than we can actually provide.
-	// Also note that the max records returned by this function to GDS is 1 million.
-	
-	var cache = CacheService.getUserCache();
+	// Note that the max records returned by this function to GDS is 1 million.
 	
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
-	var sql = userp.getProperty("sql");
+	var sql = getSqlFromConfig(cfgp);
 	
-	var data; // data to receive from cache or from a new HarperDB query
 	if(request.scriptParams.sampleExtraction) {
 		// this is semantic type detection, so we only need 100 records
-		data = cache.get("ldata");
-		if(data == null) {
-			// ensure sql contains limit 100
-			if(!userp.getProperty("sqlLimited")) {
-				sql = sqlLimit(sql, 100);
-			}
-		} else {
-			data = JSON.parse(data);
-		}
-	} else {
-		data = cache.get("data");
-		if(data != null) {
-			data = JSON.parse(data);
-		}
+		// ensure sql contains limit 100
+		sql = sqlLimit(sql, 100);
 	}
-	if(data == null) {
-		// fetch data from HarperDB
-		data = hdbSqlQuery(sql, cfgp);
+	// fetch data from HarperDB
+	var data = hdbSqlQuery(sql, cfgp);
+	
+	// get our hash prefix for persistent storage
+	var pfx = getHashFromConfig(cfgp) + ":";
+	
+	// fetch our schema
+	var schema = JSON.parse(userp.getProperty(pfx + "schema"));
+	if(schema == null) {
+		// UserProperties expired; retrieve schema and generate other fields.
+		schema = getSchema({"configParams": cfgp});
+		schema = schema.schema;
 	}
 	
-	// fetch the schema properties we need
-	var fields = JSON.parse(userp.getProperty("fields"));
-	var findex = JSON.parse(userp.getProperty("findex"));
-	var schema = JSON.parse(userp.getProperty("schema"));
+	// fetch the other schema properties we need
+	var fields = JSON.parse(userp.getProperty(pfx + "fields"));
+	var findex = JSON.parse(userp.getProperty(pfx + "findex"));
 	// and retrieve the set of fields the request wants.
 	var fetch = request.fields;
 	var gdata = [];
@@ -433,13 +393,6 @@ function getData(request) {
 		// TODO: add method for handling multi-row values
 	}
 	
-	// cache data.
-	if(request.scriptParams.sampleExtraction) {
-		cache.put("ldata", JSON.stringify(data));
-	} else {
-		cache.put("data", JSON.stringify(data));
-	}
-	
 	// return result to requester
 	return {
 		"schema": gschema,
@@ -447,12 +400,26 @@ function getData(request) {
 	};
 }
 
-function clearSavedData() {// reset UserProperties for this data source; they will be set on auth.
-	var userp = PropertiesService.getUserProperties();
-	userp.deleteAllProperties();
-	// clear the cache, in case anything is left there from previous usage of
-	//  this connector instance (previous )
-	var cache = CacheService.getUserCache();
-	cache.removeAll(["schema", "data", "ldata"])
-	// NOTE: if this connector uses new cache keys, add them to the above list!
+function getHashFromConfig(cfgp) {
+	// generates a base64 encoded SHA-256 hash of the entire configParams data field,
+	// which should be the same for any instance of a connector, and different for any
+	// other instance (barring birthday attack 1:2^128 chance)
+	// Use Case: generating prefixes for persistent storage (Properties/CacheService)
+	//  allowing multiple stores per user.
+	return Utilities.base64Encode(
+	 Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 
+	 JSON.stringify(cfgp)));
+}
+
+function getSqlFromConfig(cfgp) {
+	// either retrieves the (trimmed) SQL from config params,
+	// or builds the SQL from a schema.table pair.
+	var sql;
+	if(cfgp.sql) {
+		sql = sqlStrip(cfgp.sql);
+	} else {
+		// construct sql from schema and table pair
+		sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
+	}
+	return sql;
 }
