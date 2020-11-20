@@ -19,7 +19,7 @@ function jsonPtrQuery(obj, ptr, ind) {
 		return obj;
 	}
 
-	if(!ind) {
+	if(!ind && ind !== 0) {
 		// null or undefined ind is equivalent to a zero-length array
 		ind = [];
 	} else if(typeof ind === "number") {
