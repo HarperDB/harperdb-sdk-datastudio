@@ -1,0 +1,21 @@
+{
+  "runtimeVersion": "V8",
+  "dataStudio": {
+    "name": "HarperDB Data Connector",
+    "logoUrl": "https://studio.harperdb.io/images/favicon_purple.png",
+    "company": "HarperDB Inc.",
+    "companyUrl": "https://harperdb.io/",
+    "addonUrl": "https://harperdb.io/developers/documentation/add-ons-sdks/google-data-studio/",
+    "supportUrl": "https://github.com/HarperDB/harperdb-sdk-datastudio/issues",
+    "privacyPolicyUrl": "https://harperdb.io/legal/privacy-policy/",
+    "termsOfServiceUrl": "https://harperdb.io/legal/harperdb-cloud-terms-of-service/",
+    "description": "Uses HarperDB\u0027s Web API to communicate with a Database of your choice. Provide a URL and Basic Authentication token when configuring this connector to access your HarperDB instance.",
+    "shortDescription": "Query a HarperDB Database",
+    "sources": ["HARPERDB"],
+    "authType": ["NONE"],
+    "feeType": ["FREE"]
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
+}

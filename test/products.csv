@@ -1,0 +1,25 @@
+id,name,upc,dairy,bread,half_gallon
+1,Meadow Brook Farm Milk,J5PBEQ9R6G,TRUE,FALSE,32
+2,Meadow Brook Farm 2% Milk,6901514530,TRUE,FALSE,32
+3,Oakridge Milk,5NE7EEDUT4,TRUE,FALSE,TRUE
+4,Oakridge Skim Milk,4589262008,TRUE,FALSE,TRUE
+5,Oakridge Lactose Free Milk,NT47NOX5YU,lactose-free,FALSE,TRUE
+6,Underhill Organic Milk,473577715,TRUE,FALSE,TRUE
+7,Underhill Organic 2% Milk,PXQBXEM7HZ,TRUE,FALSE,TRUE
+8,Underhill Organic Lactose Free Milk,895935KF4S,lactose-free,FALSE,TRUE
+9,La Vache Milk,6273837089,TRUE,FALSE,TRUE
+10,La Vache Skim Milk,MNEO7CQ8T5,TRUE,FALSE,TRUE
+11,La Vache 2% Milk,7338398694,TRUE,FALSE,TRUE
+12,La Vache Lactose Free Milk,YPCKPP3NM5,lactose-free,FALSE,TRUE
+13,Krokus Vitamin D Milk,5596355199,TRUE,FALSE,TRUE
+14,Krokus Lactose Free Milk,852847844,lactose-free,FALSE,TRUE
+15,Krokus 2% Milk,9259773492,TRUE,FALSE,TRUE
+16,Krokus Skim Milk,2586587965,TRUE,FALSE,TRUE
+17,Derry Gold Milk,9223770499,TRUE,FALSE,TRUE
+18,Derry Gold Skim Milk,5J4WPGIG7Z,TRUE,FALSE,TRUE
+19,Surefoot Farms Goat Milk,9302847981,TRUE,FALSE,TRUE
+20,Surefoot Farms Fat-Free Goat Milk,5309013128,TRUE,FALSE,TRUE
+21,Foothill Dairy Milk,TZJ1ESDOI3,TRUE,FALSE,TRUE
+22,Foothill Dairy Skim Milk,1046417728,TRUE,FALSE,TRUE
+23,Golden Crescent Goat Milk,7009322047,TRUE,FALSE,TRUE
+24,Golden Crescent Fat-Free Goat Milk,PXANA3SHON,TRUE,FALSE,TRUE
