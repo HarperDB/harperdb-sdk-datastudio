@@ -5,7 +5,7 @@
 function getAuthType() {
 	// NONE type authentication, because we need to use a custom URL with a
 	// Basic Authentication Key, and GDS Authentication methods don't allow for this.
-	
+
 	var cc = DataStudioApp.createCommunityConnector();
 	return cc.newAuthTypeResponse()
 	 .setAuthType(cc.AuthType.NONE)
@@ -23,17 +23,16 @@ function getConfig(request) {
 	// return value generates a configuration page. this will be in multiple steps.
 	// the first step is always to get the user's URL for connecting to the database, and
 	//  their Basic Authentication Key. This needs to be checked before proceeding with
-	//  the rest of configuration.
-	// we may produce multiple versions of this configuration, but for now we're going for
+	//  the rest of configuration. we may produce multiple versions of this configuration, but for now we're going for
 	//  the fewest pages possible. we'll see which method flows best, and go with that one
 	//  in the end.
-	
+
 	var cc = DataStudioApp.createCommunityConnector();
 	var config = cc.getConfig();
-	
+
 	// first page info must always be included, because that enables params to be sent
 	// to the next step correctly.
-	
+
 	// BUILD first page here!
 	var cfgUrl = config.newTextInput()
 		.setId("url")
@@ -65,13 +64,13 @@ function getConfig(request) {
 			.setValue("TABLE"))
 		.setIsDynamic(true); // this acts as a cutoff, resetting anything after it
 				// and deleting it from the UI until user presses "next" button
-	
+
 	if(!('configParams' in request) || !request.configParams.queryType) {
 		// first page, nothing more to build.
 		// second check above is in case the user changed something that wiped out
 		//  the query type.
 		config.setIsSteppedConfig(true);
-		
+
 		// send config to the UI.
 		return config.build();
 	} else {
@@ -79,7 +78,7 @@ function getConfig(request) {
 		var cfgp = request.configParams;
 		var schemasJson = hdbDescribeAll(cfgp); // get data on all schemas
 		// if the above function throws an error, the error will flow through to GDS.
-		
+
 		// if the authorization works, use the response to queryType to determine which
 		//  page we display to the user.
 		if(cfgp.queryType == "SQL") {
@@ -125,25 +124,25 @@ function getSchema(request) {
 	//  their reports as of October 2019.
 	// Data types are determined using the first 100 rows of data from the query
 	//  (automatically reduced using LIMIT)
-	
+
 	var schema;
-	
+
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = getSqlFromConfig(cfgp);
-	
+
 	// set LIMIT clause to 100, if existing clause is greater than 100 or not found.
 	var o = {};
 	sql = sqlLimit(sql, 100, o);
-	
+
 	// run the query on HarperDB, and search through the resulting data
 	var data = hdbSqlQuery(sql, cfgp);
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
 	var llr = /^-?\d+(\.\d*)?,\s*-?\d+(\.\d*)?$/; // Lat,Long string capture
-	
+
 	// loop to build fields and index them
-	
+
 	for(let i=0; i<data.length; i++) {
 		// we can use data.length because HarperDB always returns an array unless there
 		//  is an error.
@@ -207,7 +206,7 @@ function getSchema(request) {
 								  + r[k].geometry.type + '"')
 								.throwException();
 						}
-					
+
 				} else if(r[k].type == "FeatureCollection" && Array.isArray(r[k].features)) {
 					// TODO: support GeoJSON FeatureCollections, using a modified form of
 					//  the multiple record handling for Arrays.
@@ -242,9 +241,9 @@ function getSchema(request) {
 			}
 		}
 	}
-	
+
 	schema = [];
-	
+
 	// loop to form schema from fields
 	for(let i=0; i<fields.length; i++) {
 		let s = {
@@ -294,17 +293,17 @@ function getSchema(request) {
 			semanticType: "NUMBER"
 		}
 	});
-	
+
 	// get our hash prefix for persistent storage
 	var pfx = getHashFromConfig(cfgp) + ":";
-	
+
 	// store simple fields information to pair with the GDS schema
 	userp.setProperty(pfx + "fields", JSON.stringify(fields));
 	userp.setProperty(pfx + "findex", JSON.stringify(findex));
-	
+
 	// insert schema into properties field
 	userp.setProperty(pfx + "schema", JSON.stringify(schema));
-	
+
 	// return the schema to the requester
 	return { "schema": schema };
 }
@@ -312,13 +311,13 @@ function getSchema(request) {
 function getData(request) {
 	// return value produces JSON in a format Data Studio understands.
 	// perform the SQL query, and transform the resulting data.
-	
+
 	// Note that the max records returned by this function to GDS is 1 million.
-	
+
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = getSqlFromConfig(cfgp);
-	
+
 	if(request.scriptParams.sampleExtraction) {
 		// this is semantic type detection, so we only need 100 records
 		// ensure sql contains limit 100
@@ -326,10 +325,10 @@ function getData(request) {
 	}
 	// fetch data from HarperDB
 	var data = hdbSqlQuery(sql, cfgp);
-	
+
 	// get our hash prefix for persistent storage
 	var pfx = getHashFromConfig(cfgp) + ":";
-	
+
 	// fetch our schema
 	var schema = JSON.parse(userp.getProperty(pfx + "schema"));
 	if(schema == null) {
@@ -337,7 +336,7 @@ function getData(request) {
 		schema = getSchema({"configParams": cfgp});
 		schema = schema.schema;
 	}
-	
+
 	// fetch the other schema properties we need
 	var fields = JSON.parse(userp.getProperty(pfx + "fields"));
 	var findex = JSON.parse(userp.getProperty(pfx + "findex"));
@@ -345,7 +344,7 @@ function getData(request) {
 	var fetch = request.fields;
 	var gdata = [];
 	var gschema = [];
-	
+
 	// produce GDS schema for only the requested fields.
 	for(let i=0; i<fetch.length; i++) {
 		if(fetch[i].name == "RecordCount") {
@@ -357,7 +356,7 @@ function getData(request) {
 			gschema.push(schema[findex[fetch[i].name]]);
 		}
 	}
-	
+
 	// loop through data records, and transform data for each field in the request.
 	let rmax = 1000000; // GDS maximum records returnable is 1 million
 	if(data.length < rmax) {
@@ -392,7 +391,7 @@ function getData(request) {
 		}
 		// TODO: add method for handling multi-row values
 	}
-	
+
 	// return result to requester
 	return {
 		"schema": gschema,
@@ -407,7 +406,7 @@ function getHashFromConfig(cfgp) {
 	// Use Case: generating prefixes for persistent storage (Properties/CacheService)
 	//  allowing multiple stores per user.
 	return Utilities.base64Encode(
-	 Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 
+	 Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
 	 JSON.stringify(cfgp)));
 }
 
