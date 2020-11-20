@@ -34,25 +34,29 @@ function getConfig(request) {
 	// to the next step correctly.
 
 	// BUILD first page here!
-	var cfgUrl = config.newTextInput()
+	config.newTextInput()
 		.setId("url")
 		.setName("Web URL")
 		.setHelpText("The URL of your HarperDB instance's API gateway")
+
 	//	.setPlaceholder("this should contain a trailing https url for the HarperDB cloud")
-	var cfgKey = config.newTextInput()
+	config.newTextInput()
 		.setId("key")
 		.setName("Basic Auth Key")
 		.setHelpText("The Basic Authorization Key for your read access to the DB")
 		.setPlaceholder("dXNlcjpwYXNzd29yZA==") // user:password in base64
-	var cfgSecure = config.newCheckbox()
+
+	config.newCheckbox()
 		.setId("secure")
 		.setName("Secure Connections Only?")
 		.setHelpText("If checked, only HTTPS connections will be made to the server.")
-	var cfgBadCert = config.newCheckbox()
+
+	config.newCheckbox()
 		.setId("badCert")
 		.setName("Allow Bad Certs?")
 		.setHelpText("If checked, HTTPS connections will work even for unverifiable certificates.")
-	var cfgQueryType = config.newSelectSingle()
+
+	config.newSelectSingle()
 		.setId("queryType")
 		.setName("Query Type")
 		.setHelpText("Either Schema.Table for simple SELECT * on that table, or SQL for freeform")
@@ -76,29 +80,29 @@ function getConfig(request) {
 	} else {
 		// test that user authorization is working!
 		var cfgp = request.configParams;
-		var schemasJson = hdbDescribeAll(cfgp); // get data on all schemas
+		hdbDescribeAll(cfgp); // get data on all schemas
 		// if the above function throws an error, the error will flow through to GDS.
 
 		// if the authorization works, use the response to queryType to determine which
 		//  page we display to the user.
-		if(cfgp.queryType == "SQL") {
+		if(cfgp.queryType === "SQL") {
 			// add a field for SQL query
-			var cfgSql = config.newTextArea()
+			config.newTextArea()
 				.setId("sql")
 				.setName("SQL Query")
 				.setHelpText("The SQL Query to HarperDB")
 				.setPlaceholder("SELECT ...");
 			config.setIsSteppedConfig(false);
 			return config.build();
-		} else if(cfgp.queryType == "TABLE") {
+		} else if(cfgp.queryType === "TABLE") {
 			// add two fields, one for Schema and one for Table.
-			var cfgSchema = config.newTextInput()
+			config.newTextInput()
 				.setId("schema")
 				.setName("Schema")
 				.setHelpText("The HarperDB Schema (not Data Studio Schema)")
 				.setPlaceholder("dev");
 			// Q: should we offer a drop-down Schema instead of text entry?
-			var cfgTable = config.newTextInput()
+			config.newTextInput()
 				.setId("table")
 				.setName("Table")
 				.setHelpText("The Table to SELECT * from in this Schema");
@@ -143,38 +147,38 @@ function getSchema(request) {
 
 	// loop to build fields and index them
 
-	for(let i=0; i<data.length; i++) {
+	for(let i = 0; i < data.length; i++) {
 		// we can use data.length because HarperDB always returns an array unless there
 		//  is an error.
 		let r = data[i]; // extract record
-		for(k in r) {
+		for(const k in r) {
 			// extract each key from the record
 			let t = null;
 			if(k in findex) {
 				// retrieve currently derived type from fields
 				t = fields[findex[k]].type;
 			}
-			if(t == "string") {
+			if(t === "string") {
 				continue; // string is a catch-all and flattens all other types
 			}
 			if(r[k] == null) {
 				continue; // null values do not affect types
 			}
 			if(typeof r[k] == "number") {
-				if(t && t != "number") {
+				if(t && t !== "number") {
 					t = "string";
 				} else {
 					t = "number";
 				}
-			} else if(typeof r[k] == "boolean") {
-				if(t && t != "boolean") {
+			} else if(typeof r[k] === "boolean") {
+				if(t && t !== "boolean") {
 					t = "string";
 				} else {
 					t = "boolean";
 				}
 			} else if(typeof r[k] == "string") {
 				// test for Lat,Long string
-				if((t == null || t == "geojson-point") && r[k].match(llr)) {
+				if((t == null || t === "geojson-point") && r[k].match(llr)) {
 					t = "geojson-point"; // equivalent to a Point in output.
 				} else {
 					t = "string";
@@ -189,11 +193,11 @@ function getSchema(request) {
 						.setText('Query returned field "' + k
 						  + '" which contains an Array; not yet supported')
 						.throwException();
-				} else if(r[k].type == "Feature" && r[k].geometry != null
+				} else if(r[k].type === "Feature" && r[k].geometry != null
 						 && typeof r[k].geometry == "object") {
-						if(r[k].geometry.type == "Point") {
+						if(r[k].geometry.type === "Point") {
 							// GeoJSON detected of type "Point"
-							if(t && t != "geojson-point") {
+							if(t && t !== "geojson-point") {
 								t = "string";
 							} else {
 								t = "geojson-point";
@@ -207,7 +211,7 @@ function getSchema(request) {
 								.throwException();
 						}
 
-				} else if(r[k].type == "FeatureCollection" && Array.isArray(r[k].features)) {
+				} else if(r[k].type === "FeatureCollection" && Array.isArray(r[k].features)) {
 					// TODO: support GeoJSON FeatureCollections, using a modified form of
 					//  the multiple record handling for Arrays.
 					cc.newUserError()
@@ -227,7 +231,7 @@ function getSchema(request) {
 			}
 			// apply type to fields record
 			if(k in findex) {
-				if(t != null && t != fields[findex[k]].type) {
+				if(t != null && t !== fields[findex[k]].type) {
 					fields[findex[k]].type = t;
 				}
 			} else {
@@ -245,7 +249,7 @@ function getSchema(request) {
 	schema = [];
 
 	// loop to form schema from fields
-	for(let i=0; i<fields.length; i++) {
+	for(let i = 0; i < fields.length; i++) {
 		let s = {
 			name: fields[i].name,
 			label: fields[i].name,
@@ -254,7 +258,7 @@ function getSchema(request) {
 				conceptType: "DIMENSION" // all returned fields are dimensions
 			}
 		};
-		switch(fields[i].type) {
+		switch(fields[i].type = 'string') {
 		 case null:
 			fields[i].type = "string"; // default to string type for all nulls
 		 case "string":
@@ -346,8 +350,8 @@ function getData(request) {
 	var gschema = [];
 
 	// produce GDS schema for only the requested fields.
-	for(let i=0; i<fetch.length; i++) {
-		if(fetch[i].name == "RecordCount") {
+	for(let i = 0; i < fetch.length; i++) {
+		if(fetch[i].name === "RecordCount") {
 			// fetch the Record Count metric, which is always at the end.
 			gschema.push(schema[schema.length-1]);
 		} else {
@@ -362,13 +366,13 @@ function getData(request) {
 	if(data.length < rmax) {
 		rmax = data.length;
 	}
-	for(let i=0; i<rmax; i++) {
+	for(let i = 0; i < rmax; i++) {
 		let values = [];
 		gdata.push({"values": values});
-		for(let j=0; j<fetch.length; j++) {
+		for(let j = 0; j < fetch.length; j++) {
 			// transform data in each field
 			let f;
-			if(fetch[j].name == "RecordCount") {
+			if(fetch[j].name === "RecordCount") {
 				// Record Count is always 1 for every row (sum it!)
 				values.push(1);
 				continue;
@@ -376,16 +380,16 @@ function getData(request) {
 				f = fields[findex[fetch[j].name]];
 			}
 			let val = jsonPtrQuery(data[i], f.path);
-			if((f.type == "geojson-point" || f.type == "string") && val != null
-			  && typeof val == "object" && val.type == "Feature"
+			if((f.type === "geojson-point" || f.type === "string") && val != null
+			  && typeof val == "object" && val.type === "Feature"
 			  && val.geometry != null && typeof val.geometry == "object"
-			  && val.geometry.type == "Point") {
+			  && val.geometry.type === "Point") {
 				// detected a Point;
 				// extract Lat,Long from Point and join
 				let coord = val.geometry.coordinates;
 				val = coord.join(',');
-			} else if(f.type == "string") {
-				val = val.toString();
+			} else if(f.type === "string") {
+				val = val && val.toString();
 			}
 			values.push(val);
 		}

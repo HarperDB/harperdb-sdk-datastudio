@@ -9,7 +9,7 @@ function sqlStrip(s, t) {
 	//  after it will also be stripped out.
 	// the empty object t will have the property "nochange" added with the value "true"
 	//  if the SQL is unchanged when returned.
-	
+
 	var quoter = /(["'`]).*?\1/gm; // regex that catches any SQL quotes
 	var qres = quoter.exec(s);
 	var commr = /\/\*.*?\*\/|--.*?(\r\n|\r|\n|$)/gm; // catches comments of both forms
@@ -19,7 +19,7 @@ function sqlStrip(s, t) {
 	var r = ""; // our return value goes here.
 	var scfound = false; // true if we find a semicolon or at least one comment.
 	var last = 0; // last slice point; start here when copying text from s.
-	
+
 	while(cres || sres) {
 		// as long as we keep finding potential comments or semicolons, the above will
 		//  remain true. we set both to null to leave the loop entirely.
@@ -82,7 +82,9 @@ function sqlStrip(s, t) {
 			} else {
 				// semicolon found before quotes or comments; end of statement found
 				// slice up to just before the ";"
-				r += s.slice(last, sres.index);
+				if (sres) {
+					r += s.slice(last, sres.index);
+				}
 				// and we're done.
 				return r;
 			}
@@ -90,7 +92,7 @@ function sqlStrip(s, t) {
 		}
 	}
 	// done; prepare the return.
-	if(scfound == false) {
+	if(!scfound) {
 		r = s;
 		if(t) {
 			t.nochange = true;
@@ -112,18 +114,18 @@ function sqlLimit(s, l, t) {
 	//  if the SQL is unchanged when returned.
 	// sqlLimit() expects there to be no comments or semicolons in the SQL. Using
 	//  sqlStrip() beforehand is strongly suggested.
-	
-	
+
+
 	// parse the SQL query and detect any existing LIMIT clause in the query.
 	// if it exists, determine how large the limit is, and use the minimum of that and
 	//  100; if there is no LIMIT, add it to the end of the query.
-	
+
 	var quoter = /(["'`]).*?\1/gm; // regex that catches any SQL quotes
 	var qres = quoter.exec(s);
 	var limitr = /\blimit\s+(\d+)\b/gmi; // regex that catches "limit" and a number
 	var lres = limitr.exec(s);
 	var lfound = false;
-	
+
 	while(lres) {
 		// the above will be false if we don't find a valid limit, or we set it to null.
 		if(qres && qres.index < lres.index) {
