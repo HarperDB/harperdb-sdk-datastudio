@@ -1,0 +1,13 @@
+id,name,location
+1,Ampersand Asterisk,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.72012,-104.961169]}}"
+2,Shoots,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.646334,-104.876034]}}"
+3,Blessed Bees Grocer and Apiary,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.671074,-105.038097]}}"
+4,Northstar Provisions,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.707718,-104.881352]}}"
+5,Queen Supers West,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.723273,-105.019216]}}"
+6,Queen Supers East,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.780816,-104.875914]}}"
+7,By The Bushel,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.695606,-105.021745]}}"
+8,Mountainview Market,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.642882,-105.00028]}}"
+9,Pacific Market Garden,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.630648,-104.979318]}}"
+10,Sure-Good,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.6455,-104.870864]}}"
+11,North Farmer's Market,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.741173,-105.030346]}}"
+12,Granny's Nook,"{""type"":""Feature"",""geometry"":{""type"":""Point"",""coordinates"":[39.698482,-104.914396]}}"
