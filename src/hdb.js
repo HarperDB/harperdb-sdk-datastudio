@@ -5,77 +5,41 @@
 function urlForHDB(cfgp) {
 	// takes the configuration parameters for the current GDS operation.
 	// returns the URL to use for HarperDB access
-
 	var cc = DataStudioApp.createCommunityConnector();
 	var url = cfgp.url;
 
-	if(url == null) {
+	if(!url.trim().match(/(https?:\/\/.*):?(\d*)?\/?(.*)/g)) {
 		// error
 		cc.newUserError()
-			.setText("URL not defined, cannot access HarperDB")
-			.throwException();
-	}
-	if(typeof url != "string") {
-		// error
-		cc.newUserError()
-			.setText('URL is not of type "string", cannot access HarperDB')
-			.setDebugText("This message should never appear!")
-			.throwException();
+		.setText('Invalid URL. Please provide a valid URL to a running HarperDB instance.')
+		.setDebugText("Please provide a valid URL to a running HarperDB instance.")
+		.throwException();
 	}
 
-	url = url && url.trim(); // remove whitespace from both ends
-	var urlScheme = /^[a-z][a-z+.-]*:/;
-	if(url && url.search(urlScheme) !== -1) { // if the URL starts with a scheme
-		if(!url.startsWith("http://") && !url.startsWith("https://")) {
-			// and that scheme is neither http nor https, error!
-			cc.newUserError()
-				.setText('URL uses bad protocol, you must use either http or https!')
-				.setDebugText('URL used bad scheme "' + url.match(urlScheme)[0] + '"')
-				.throwException();
-		}
-		// otherwise, transform http into https if we want to use only secure mode
-		if(cfgp.secure && url.startsWith("http://")) {
-			url = "https://" + url.slice(7);
-		}
-	} else { // if URL is does not contain a scheme,
-		if(cfgp.secure) { // if we're in secure connections only
-			url = "https://" + url; // add https
-		} else {
-			url = "http://" + url; // just add http instead
-		}
-	}
-
-	return url;
+	return url.trim();
 }
 
 function authForHDB(cfgp) {
-	// takes the configuration parameters for the current GDS operation.
-	// returns the Basic Auth token to use for HarperDB access
-
 	var cc = DataStudioApp.createCommunityConnector();
+	var username = cfgp.username;
+	var password = cfgp.password;
 
-	var auth = cfgp.key;
-	if(auth == null) {
+	if(!username) {
 		// error
 		cc.newUserError()
-			.setText("Auth key not defined, cannot access HarperDB")
-			.throwException();
+		.setText("Please provide a valid HarperDB user")
+		.throwException();
 	}
-	if(typeof auth != "string") {
+
+	if (!password) {
 		// error
 		cc.newUserError()
-			.setText('Auth key is not of type "string", cannot access HarperDB')
-			.setDebugText("This message should never appear!")
-			.throwException();
+		.setText("Please provide a valid HarperDB password")
+		.throwException();
 	}
 
-	auth = auth && auth.trim(); // remove whitespace from both ends
-
-	if(auth && !auth.startsWith("Basic ")) {
-		// add that word, HarperDB needs it!
-		auth = "Basic " + auth;
-	}
-
+	var encodedUserPass = Utilities.base64Encode(username + ':'+ password);
+	var auth = "Basic " + encodedUserPass;
 
 	return auth;
 }
@@ -92,12 +56,8 @@ function hdbHttpRequest(cfgp, url, auth, body) {
 			"Authorization": auth
 		},
 		"muteHttpExceptions": true, // prevent GDS sending default errors on 400/500
-		"payload": JSON.stringify(body)
-	}
-	if(cfgp.badCert) {
-		// user checked the "Allow Bad Certs?" box.
-		// need to change this from default "true" to allow self-signed certs etc.
-		opt.validateHttpsCertificates = false;
+		"payload": JSON.stringify(body),
+		"validateHttpsCertificates": false
 	}
 
 	// perform the request
@@ -111,7 +71,6 @@ function hdbHandleError(r) {
 	// takes r, a response from UrlFetchApp (in HTTPResponse form)
 	// returns nothing
 	// will throw a user error to GDS if the response code is not 200.
-
 	var cc = DataStudioApp.createCommunityConnector();
 	var code = r.getResponseCode();
 
@@ -129,8 +88,7 @@ function hdbHandleError(r) {
 		e = r.getContentText(); // just in case a non-standard error appears!
 	}
 	cc.newUserError()
-	.setText('HarperDB response ' + code
-		+ '; error text "' + e + '"')
+	.setText(code + ': "' + e + '"')
 	.throwException();
 }
 
