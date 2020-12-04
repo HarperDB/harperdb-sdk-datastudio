@@ -1,7 +1,7 @@
 {
   "runtimeVersion": "V8",
   "dataStudio": {
-    "name": "HarperDB Data Connector",
+    "name": "HarperDB",
     "logoUrl": "https://studio.harperdb.io/images/favicon_purple.png",
     "company": "HarperDB Inc.",
     "companyUrl": "https://harperdb.io/",

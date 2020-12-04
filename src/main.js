@@ -1,16 +1,14 @@
 // HarperDB Data Studio Connector
 // main.js: main program components for the Community Connector
 // Contributor(s): Aubrey Smith
-
 function getAuthType() {
 	// NONE type authentication, because we need to use a custom URL with a
 	// Basic Authentication Key, and GDS Authentication methods don't allow for this.
-
 	var cc = DataStudioApp.createCommunityConnector();
+
 	return cc.newAuthTypeResponse()
-	 .setAuthType(cc.AuthType.NONE)
-//	 .setHelpUrl('https://example.org/help-url') // add authentication help URL if needed
-	 .build();
+	.setAuthType(cc.AuthType.NONE)
+	.build();
 }
 
 function isAdminUser() {
@@ -26,7 +24,6 @@ function getConfig(request) {
 	//  the rest of configuration. we may produce multiple versions of this configuration, but for now we're going for
 	//  the fewest pages possible. we'll see which method flows best, and go with that one
 	//  in the end.
-
 	var cc = DataStudioApp.createCommunityConnector();
 	var config = cc.getConfig();
 
@@ -35,39 +32,35 @@ function getConfig(request) {
 
 	// BUILD first page here!
 	config.newTextInput()
-		.setId("url")
-		.setName("Web URL")
-		.setHelpText("The URL of your HarperDB instance's API gateway")
+	.setId("url")
+	.setName("Instance URL")
+	.setHelpText("Publicly-accessible URL of your HarperDB instance")
+	.setPlaceholder("https://myinstance-mysubdomain.harperdbcloud.com")
 
-	//	.setPlaceholder("this should contain a trailing https url for the HarperDB cloud")
 	config.newTextInput()
-		.setId("key")
-		.setName("Basic Auth Key")
-		.setHelpText("The Basic Authorization Key for your read access to the DB")
-		.setPlaceholder("dXNlcjpwYXNzd29yZA==") // user:password in base64
+	.setId("username")
+	.setName("Username")
+	.setHelpText("The user with which you want to access HarperDB")
+	.setPlaceholder("HDB_ADMIN")
 
-	config.newCheckbox()
-		.setId("secure")
-		.setName("Secure Connections Only?")
-		.setHelpText("If checked, only HTTPS connections will be made to the server.")
-
-	config.newCheckbox()
-		.setId("badCert")
-		.setName("Allow Bad Certs?")
-		.setHelpText("If checked, HTTPS connections will work even for unverifiable certificates.")
+	config.newTextInput()
+	.setId("password")
+	.setName("Password")
+	.setHelpText("The password for the user specified above")
+	.setPlaceholder("password")
 
 	config.newSelectSingle()
-		.setId("queryType")
-		.setName("Query Type")
-		.setHelpText("Either Schema.Table for simple SELECT * on that table, or SQL for freeform")
-		.addOption(config.newOptionBuilder()
-			.setLabel("SQL")
-			.setValue("SQL"))
-		.addOption(config.newOptionBuilder()
-			.setLabel("Table")
-			.setValue("TABLE"))
-		.setIsDynamic(true); // this acts as a cutoff, resetting anything after it
-				// and deleting it from the UI until user presses "next" button
+	.setId("queryType")
+	.setName("Query Type")
+	.setHelpText("Either Schema.Table for simple SELECT * on that table, or SQL for freeform")
+	.addOption(config.newOptionBuilder()
+	.setLabel("SQL")
+	.setValue("SQL"))
+	.addOption(config.newOptionBuilder()
+	.setLabel("Table")
+	.setValue("TABLE"))
+	.setIsDynamic(true); // this acts as a cutoff, resetting anything after it
+	// and deleting it from the UI until user presses "next" button
 
 	if(!('configParams' in request) || !request.configParams.queryType) {
 		// first page, nothing more to build.
@@ -88,24 +81,24 @@ function getConfig(request) {
 		if(cfgp.queryType === "SQL") {
 			// add a field for SQL query
 			config.newTextArea()
-				.setId("sql")
-				.setName("SQL Query")
-				.setHelpText("The SQL Query to HarperDB")
-				.setPlaceholder("SELECT ...");
+			.setId("sql")
+			.setName("SQL Query")
+			.setHelpText("The SQL Query to HarperDB")
+			.setPlaceholder("SELECT ...");
 			config.setIsSteppedConfig(false);
 			return config.build();
 		} else if(cfgp.queryType === "TABLE") {
 			// add two fields, one for Schema and one for Table.
 			config.newTextInput()
-				.setId("schema")
-				.setName("Schema")
-				.setHelpText("The HarperDB Schema (not Data Studio Schema)")
-				.setPlaceholder("dev");
+			.setId("schema")
+			.setName("Schema")
+			.setHelpText("The HarperDB Schema")
+			.setPlaceholder("dev");
 			// Q: should we offer a drop-down Schema instead of text entry?
 			config.newTextInput()
-				.setId("table")
-				.setName("Table")
-				.setHelpText("The Table to SELECT * from in this Schema");
+			.setId("table")
+			.setName("Table")
+			.setHelpText("The Table to SELECT * from in this Schema");
 			// Q: should we make an additional step to configuration here, where Schema
 			//  choice determines which one we Describe Schema from.
 			//  (this would use the describe_schema operation rather than an SQL query)
@@ -114,9 +107,9 @@ function getConfig(request) {
 		} else {
 			// illegal queryType!
 			cc.newUserError()
-				.setText("Illegal Query Type! Type must be SQL or Schema.Table.")
-				.setDebugText("Received queryType = " + cfgp.queryType)
-				.throwException();
+			.setText("Illegal Query Type! Type must be SQL or Schema.Table.")
+			.setDebugText("Received queryType = " + cfgp.queryType)
+			.throwException();
 		}
 	}
 }
@@ -129,8 +122,8 @@ function getSchema(request) {
 	// Data types are determined using the first 100 rows of data from the query
 	//  (automatically reduced using LIMIT)
 
+	var cc = DataStudioApp.createCommunityConnector();
 	var schema;
-
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = getSqlFromConfig(cfgp);
@@ -190,43 +183,43 @@ function getSchema(request) {
 					// TODO: add a capture for this! effectively this is recursive.
 					//  for now, this is an error.
 					cc.newUserError()
-						.setText('Query returned field "' + k
-						  + '" which contains an Array; not yet supported')
-						.throwException();
+					.setText('Query returned field "' + k
+						+ '" which contains an Array; not yet supported')
+					.throwException();
 				} else if(r[k].type === "Feature" && r[k].geometry != null
-						 && typeof r[k].geometry == "object") {
-						if(r[k].geometry.type === "Point") {
-							// GeoJSON detected of type "Point"
-							if(t && t !== "geojson-point") {
-								t = "string";
-							} else {
-								t = "geojson-point";
-							}
-							// TODO: add other varieties of GeoJSON object capture here
+					&& typeof r[k].geometry == "object") {
+					if(r[k].geometry.type === "Point") {
+						// GeoJSON detected of type "Point"
+						if(t && t !== "geojson-point") {
+							t = "string";
 						} else {
-							cc.newUserError()
-								.setText('Query returned field "' + k
-								  + '" which contains an unsupported GeoJSON geometry type "'
-								  + r[k].geometry.type + '"')
-								.throwException();
+							t = "geojson-point";
 						}
+						// TODO: add other varieties of GeoJSON object capture here
+					} else {
+						cc.newUserError()
+						.setText('Query returned field "' + k
+							+ '" which contains an unsupported GeoJSON geometry type "'
+							+ r[k].geometry.type + '"')
+						.throwException();
+					}
 
 				} else if(r[k].type === "FeatureCollection" && Array.isArray(r[k].features)) {
 					// TODO: support GeoJSON FeatureCollections, using a modified form of
 					//  the multiple record handling for Arrays.
 					cc.newUserError()
-						.setText('Query returned field "' + k
-						  + '" which contains a GeoJSON FeatureCollection; not yet supported')
-						.throwException();
+					.setText('Query returned field "' + k
+						+ '" which contains a GeoJSON FeatureCollection; not yet supported')
+					.throwException();
 				} else {
 					// TODO: implement support for objects contained in a record.
 					//  effectively this is a single record version of the Array capture,
 					//  so it requires a recursive function.
 					//  for now, this is an error.
 					cc.newUserError()
-						.setText('Query returned field "' + k
-						  + '" which contains a raw object record; not yet supported')
-						.throwException();
+					.setText('Query returned field "' + k
+						+ '" which contains a raw object record; not yet supported')
+					.throwException();
 				}
 			}
 			// apply type to fields record
@@ -259,29 +252,29 @@ function getSchema(request) {
 			}
 		};
 		switch(fields[i].type = 'string') {
-		 case null:
-			fields[i].type = "string"; // default to string type for all nulls
-		 case "string":
-		 	s.dataType = "STRING";
-		 	break;
-		 case "number":
-		 	s.dataType = "NUMBER";
-		 	break;
-		 case "boolean":
-		 	s.dataType = "BOOLEAN";
-		 	break;
-		 case "geojson-point":
-		 	// will be converted to a string with "Lat, Long" coordinates.
-		 	s.dataType = "STRING";
-		 	s.semantics.semanticType = "LATITUDE_LONGITUDE";
-		 	break
-		 default:
-		 	// error
-		 	cc.newUserError()
-		 		.setText('Schema detection produced illegal type')
-		 		.setDebugText('This message should never appear! illegal type was "'
-		 			+ fields[i].type + '"')
-		 		.throwException();
+			case null:
+				fields[i].type = "string"; // default to string type for all nulls
+			case "string":
+				s.dataType = "STRING";
+				break;
+			case "number":
+				s.dataType = "NUMBER";
+				break;
+			case "boolean":
+				s.dataType = "BOOLEAN";
+				break;
+			case "geojson-point":
+				// will be converted to a string with "Lat, Long" coordinates.
+				s.dataType = "STRING";
+				s.semantics.semanticType = "LATITUDE_LONGITUDE";
+				break
+			default:
+				// error
+				cc.newUserError()
+				.setText('Schema detection produced illegal type')
+				.setDebugText('This message should never appear! illegal type was "'
+					+ fields[i].type + '"')
+				.throwException();
 		}
 		schema.push(s);
 	}
@@ -381,9 +374,9 @@ function getData(request) {
 			}
 			let val = jsonPtrQuery(data[i], f.path);
 			if((f.type === "geojson-point" || f.type === "string") && val != null
-			  && typeof val == "object" && val.type === "Feature"
-			  && val.geometry != null && typeof val.geometry == "object"
-			  && val.geometry.type === "Point") {
+				&& typeof val == "object" && val.type === "Feature"
+				&& val.geometry != null && typeof val.geometry == "object"
+				&& val.geometry.type === "Point") {
 				// detected a Point;
 				// extract Lat,Long from Point and join
 				let coord = val.geometry.coordinates;
@@ -410,8 +403,8 @@ function getHashFromConfig(cfgp) {
 	// Use Case: generating prefixes for persistent storage (Properties/CacheService)
 	//  allowing multiple stores per user.
 	return Utilities.base64Encode(
-	 Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
-	 JSON.stringify(cfgp)));
+		Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,
+			JSON.stringify(cfgp)));
 }
 
 function getSqlFromConfig(cfgp) {
