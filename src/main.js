@@ -73,6 +73,20 @@ function getConfig(request) {
 	} else {
 		// test that user authorization is working!
 		var cfgp = request.configParams;
+		if(!cfgp.url) {
+			// URL cannot be blank!
+			cc.newUserError()
+			.setText("URL for database cannot be left blank!")
+			.throwException();
+		}
+		if(!cfgp.username) {
+			// ensure username is blank string, not undefined
+			cfgp.username = "";
+		}
+		if(!cfgp.password) {
+			// ensure password is blank string, not undefined
+			cfgp.password = "";
+		}
 		hdbDescribeAll(cfgp); // get data on all schemas
 		// if the above function throws an error, the error will flow through to GDS.
 
@@ -251,7 +265,7 @@ function getSchema(request) {
 				conceptType: "DIMENSION" // all returned fields are dimensions
 			}
 		};
-		switch(fields[i].type = 'string') {
+		switch(fields[i].type) {
 			case null:
 				fields[i].type = "string"; // default to string type for all nulls
 			case "string":
@@ -382,7 +396,9 @@ function getData(request) {
 				let coord = val.geometry.coordinates;
 				val = coord.join(',');
 			} else if(f.type === "string") {
-				val = val && val.toString();
+				if(val !== null) {
+					val = val.toString();
+				}
 			}
 			values.push(val);
 		}
