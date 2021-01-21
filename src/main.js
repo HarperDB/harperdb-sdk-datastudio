@@ -1,20 +1,62 @@
 // HarperDB Data Studio Connector
 // main.js: main program components for the Community Connector
 // Contributor(s): Aubrey Smith
-function getAuthType() {
-	// NONE type authentication, because we need to use a custom URL with a
-	// Basic Authentication Key, and GDS Authentication methods don't allow for this.
-	var cc = DataStudioApp.createCommunityConnector();
-
-	return cc.newAuthTypeResponse()
-	.setAuthType(cc.AuthType.NONE)
-	.build();
-}
-
 function isAdminUser() {
 	// return true if this is a debug build;
 	// return false if this is a release build.
 	return false;
+}
+
+function getAuthType() {
+	// PATH_USER_PASS type authentication grabs the url, username, and password for us.
+	var cc = DataStudioApp.createCommunityConnector();
+
+	return cc.newAuthTypeResponse()
+	.setAuthType(cc.AuthType.PATH_USER_PASS)
+	.build();
+}
+
+function isAuthValid() {
+	// return true if authorization is valid, false otherwise.
+
+	// test that user authorization is working!
+	var userp = PropertiesService.getUserProperties();
+
+	try {
+		hdbDescribeAll(userp); // get data on all schemas
+	} catch(error) {
+		// if the schema data fails to load, we get an error.
+		// assume this means the authorization is not working.
+		return false;
+	}
+	// if there was no error, we know the authorization was valid.
+	return true;
+}
+
+function setCredentials(request) {
+	// sets the authorization credentials in persistent storage.
+	// return the appropriate error code, with NONE error if everything is OK.
+	var userp = PropertiesService.getUserProperties();
+	var creds = request.pathUserPass;
+
+	// erase other user properties stored for this script; they will be invalid if the
+	// credentials changed to another database.
+	userp.deleteAllProperties();
+
+	userp.setProperty('dscc.path', creds.path);
+	userp.setProperty('dscc.username', creds.username);
+	userp.setProperty('dscc.password', creds.password);
+
+	return({errorCode: 'NONE'}); // must return this object to indicate success.
+}
+
+function resetAuth() {
+	// resets authorization credentials.
+	var userp = PropertiesService.getUserProperties();
+
+	userp.deleteProperty('dscc.path');
+	userp.deleteProperty('dscc.username');
+	userp.deleteProperty('dscc.password');
 }
 
 function getConfig(request) {
@@ -31,24 +73,6 @@ function getConfig(request) {
 	// to the next step correctly.
 
 	// BUILD first page here!
-	config.newTextInput()
-	.setId("url")
-	.setName("Instance URL")
-	.setHelpText("Publicly-accessible URL of your HarperDB instance")
-	.setPlaceholder("https://myinstance-mysubdomain.harperdbcloud.com")
-
-	config.newTextInput()
-	.setId("username")
-	.setName("Username")
-	.setHelpText("The user with which you want to access HarperDB")
-	.setPlaceholder("HDB_ADMIN")
-
-	config.newTextInput()
-	.setId("password")
-	.setName("Password")
-	.setHelpText("The password for the user specified above")
-	.setPlaceholder("password")
-
 	config.newSelectSingle()
 	.setId("queryType")
 	.setName("Query Type")
@@ -71,27 +95,9 @@ function getConfig(request) {
 		// send config to the UI.
 		return config.build();
 	} else {
-		// test that user authorization is working!
+		// second page.
 		var cfgp = request.configParams;
-		if(!cfgp.url) {
-			// URL cannot be blank!
-			cc.newUserError()
-			.setText("URL for database cannot be left blank!")
-			.throwException();
-		}
-		if(!cfgp.username) {
-			// ensure username is blank string, not undefined
-			cfgp.username = "";
-		}
-		if(!cfgp.password) {
-			// ensure password is blank string, not undefined
-			cfgp.password = "";
-		}
-		hdbDescribeAll(cfgp); // get data on all schemas
-		// if the above function throws an error, the error will flow through to GDS.
-
-		// if the authorization works, use the response to queryType to determine which
-		//  page we display to the user.
+		// use the queryType to determine which page we display to the user.
 		if(cfgp.queryType === "SQL") {
 			// add a field for SQL query
 			config.newTextArea()
@@ -147,7 +153,7 @@ function getSchema(request) {
 	sql = sqlLimit(sql, 100, o);
 
 	// run the query on HarperDB, and search through the resulting data
-	var data = hdbSqlQuery(sql, cfgp);
+	var data = hdbSqlQuery(sql, userp);
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
 	var llr = /^-?\d+(\.\d*)?,\s*-?\d+(\.\d*)?$/; // Lat,Long string capture
@@ -335,7 +341,7 @@ function getData(request) {
 		sql = sqlLimit(sql, 100);
 	}
 	// fetch data from HarperDB
-	var data = hdbSqlQuery(sql, cfgp);
+	var data = hdbSqlQuery(sql, userp);
 
 	// get our hash prefix for persistent storage
 	var pfx = getHashFromConfig(cfgp) + ":";
