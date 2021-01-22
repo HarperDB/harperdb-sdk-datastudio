@@ -2,11 +2,11 @@
 // hdb.js: HarperDB operations and helper functions
 // Contributor(s): Aubrey Smith
 
-function urlForHDB(cfgp) {
+function urlForHDB(userp) {
 	// takes the configuration parameters for the current GDS operation.
 	// returns the URL to use for HarperDB access
 	var cc = DataStudioApp.createCommunityConnector();
-	var url = cfgp.url;
+	var url = userp.getProperty('dscc.path');
 
 	if(!url.trim().match(/(https?:\/\/.*):?(\d*)?\/?(.*)/g)) {
 		// error
@@ -19,10 +19,10 @@ function urlForHDB(cfgp) {
 	return url.trim();
 }
 
-function authForHDB(cfgp) {
+function authForHDB(userp) {
 	var cc = DataStudioApp.createCommunityConnector();
-	var username = cfgp.username;
-	var password = cfgp.password;
+	var username = userp.getProperty('dscc.username');
+	var password = userp.getProperty('dscc.password');
 
 	if(!username) {
 		// error
@@ -38,13 +38,13 @@ function authForHDB(cfgp) {
 		.throwException();
 	}
 
-	var encodedUserPass = Utilities.base64Encode(username + ':'+ password);
+	var encodedUserPass = Utilities.base64Encode(username + ':' + password);
 	var auth = "Basic " + encodedUserPass;
 
 	return auth;
 }
 
-function hdbHttpRequest(cfgp, url, auth, body) {
+function hdbHttpRequest(url, auth, body) {
 	// takes the config params for the connector, the URL, Auth Key,
 	// and JSON body to send to HarperDB in a POST request.
 	// returns the body of the request.
@@ -92,13 +92,13 @@ function hdbHandleError(r) {
 	.throwException();
 }
 
-function hdbSqlQuery(sql, cfgp) {
+function hdbSqlQuery(sql, userp) {
 	// takes an SQL query, and the configParams from the current GDS operation.
 	// performs an SQL query on the remote HarperDB instance.
 	// returns the JSON output from HarperDB as an object.
 
-	var url = urlForHDB(cfgp);
-	var auth = authForHDB(cfgp);
+	var url = urlForHDB(userp);
+	var auth = authForHDB(userp);
 
 	// form the request
 	var body = {
@@ -106,17 +106,17 @@ function hdbSqlQuery(sql, cfgp) {
 		"sql": sql
 	};
 
-	var r = hdbHttpRequest(cfgp, url, auth, body);
+	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText());
 }
 
-function hdbDescribeSchema(schema, cfgp) {
+function hdbDescribeSchema(schema, userp) {
 	// takes a schema name, and the configParams from the current GDS operation.
 	// performs a Describe Schema operation on HarperDB
 	// returns the JSON output from HarperDB as an object.
 
-	var url = urlForHDB(cfgp);
-	var auth = authForHDB(cfgp);
+	var url = urlForHDB(userp);
+	var auth = authForHDB(userp);
 
 	// form the request
 	var body = {
@@ -124,18 +124,18 @@ function hdbDescribeSchema(schema, cfgp) {
 		"schema": schema
 	};
 
-	var r = hdbHttpRequest(cfgp, url, auth, body);
+	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText());
 }
 
-function hdbDescribeTable(schema, table, cfgp) {
+function hdbDescribeTable(schema, table, userp) {
 	// takes a schema name, a table name,
 	//  and the configParams from the current GDS operation.
 	// performs a Describe Schema operation on HarperDB
 	// returns the JSON output from HarperDB as an object.
 
-	var url = urlForHDB(cfgp);
-	var auth = authForHDB(cfgp);
+	var url = urlForHDB(userp);
+	var auth = authForHDB(userp);
 
 	// form the request
 	var body = {
@@ -144,23 +144,23 @@ function hdbDescribeTable(schema, table, cfgp) {
 		"table": table
 	};
 
-	var r = hdbHttpRequest(cfgp, url, auth, body);
+	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText());
 }
 
-function hdbDescribeAll(cfgp) {
+function hdbDescribeAll(userp) {
 	// takes the configParams from the current GDS operation.
 	// performs a Describe All operation on HarperDB
 	// returns the JSON output from HarperDB as an object.
 
-	var url = urlForHDB(cfgp);
-	var auth = authForHDB(cfgp);
+	var url = urlForHDB(userp);
+	var auth = authForHDB(userp);
 
 	// form the request
 	var body = {
 		"operation": "describe_all"
 	}
 
-	var r = hdbHttpRequest(cfgp, url, auth, body);
+	var r = hdbHttpRequest(url, auth, body);
 	return JSON.parse(r.getContentText());
 }
