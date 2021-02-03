@@ -61,11 +61,10 @@ function resetAuth() {
 
 function getConfig(request) {
 	// return value generates a configuration page. this will be in multiple steps.
-	// the first step is always to get the user's URL for connecting to the database, and
-	//  their Basic Authentication Key. This needs to be checked before proceeding with
-	//  the rest of configuration. we may produce multiple versions of this configuration, but for now we're going for
-	//  the fewest pages possible. we'll see which method flows best, and go with that one
-	//  in the end.
+	// the first step is to get the type of request made by the user, SQL statement or
+	//  a SELECT * on a specific table.
+	// the second step is either to get the SQL statement, or to get the schema and table
+	//  the user wants to retrieve.
 	var cc = DataStudioApp.createCommunityConnector();
 	var config = cc.getConfig();
 
