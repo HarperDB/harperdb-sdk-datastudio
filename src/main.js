@@ -21,12 +21,47 @@ function isAuthValid() {
 
 	// test that user authorization is working!
 	var userp = PropertiesService.getUserProperties();
+	let path = userp.getProperty("dscc.path"),
+		username = userp.getProperty("dscc.username"),
+		password = userp.getProperty("dscc.password");
+
+	if(!path || !username || !password) {
+		// credentials are incomplete!
+		return false;
+	}
 
 	try {
 		hdbDescribeAll(userp); // get data on all schemas
-	} catch(error) {
+	} catch(e) {
 		// if the schema data fails to load, we get an error.
 		// assume this means the authorization is not working.
+		// throw a meaningful error.
+		let cc = DataStudioApp.createCommunityConnector();
+		if(e.message.slice(0,3) == 401) {
+			// authorization failure; must return false to reset credentials.
+			return false; // this line probably can't be reached.
+		} else {
+			// some other type of failure occurred.
+			// we don't want the user to lose their configuration if it's a
+			// HarperDB server error, but we don't want the user to get trapped if
+			// some other error occurred (like double-pasting a URL, getting
+			// a DNS error).
+			if(e.message.slice(0,4).match(/\d\d\d:/)) {
+				// message starts with three numbers and a colon;
+				// must be a HarperDB error with HTTP response.
+				cc.newUserError()
+				.setText("We encountered a server error while checking your credentials. "
+					+ "Error from HarperDB: response " + e.message)
+				.throwException();
+			} else {
+				// some kind of error within GDB or our code.
+				// we don't want GDB errors like DNS failures to lock the user out of
+				// using our connector, so return false to clear it!
+				// WHEN DEBUGGING, uncomment the next line.
+				// throw e;
+				return false;
+			}
+		}
 		return false;
 	}
 	// if there was no error, we know the authorization was valid.
@@ -38,6 +73,13 @@ function setCredentials(request) {
 	// return the appropriate error code, with NONE error if everything is OK.
 	var userp = PropertiesService.getUserProperties();
 	var creds = request.pathUserPass;
+
+	if(!creds.path || !creds.username ||
+		!creds.path.trim().match(/(https?:\/\/.*):?(\d*)?\/?(.*)/g)) {
+		// path or username is blank,
+		// or path is an invalid URL; these are all invalid credentials!
+		return({errorCode: 'INVALID_CREDENTIALS'});
+	}
 
 	// erase other user properties stored for this script; they will be invalid if the
 	// credentials changed to another database.
@@ -75,7 +117,7 @@ function getConfig(request) {
 	config.newSelectSingle()
 	.setId("queryType")
 	.setName("Query Type")
-	.setHelpText("Either Schema.Table for simple SELECT * on that table, or SQL for freeform")
+	.setHelpText("Either Table for simple SELECT * on one table, or SQL for freeform")
 	.addOption(config.newOptionBuilder()
 	.setLabel("SQL")
 	.setValue("SQL"))
@@ -126,7 +168,7 @@ function getConfig(request) {
 		} else {
 			// illegal queryType!
 			cc.newUserError()
-			.setText("Illegal Query Type! Type must be SQL or Schema.Table.")
+			.setText("Illegal Query Type! Type must be SQL or Table.")
 			.setDebugText("Received queryType = " + cfgp.queryType)
 			.throwException();
 		}
@@ -152,7 +194,7 @@ function getSchema(request) {
 	sql = sqlLimit(sql, 100, o);
 
 	// run the query on HarperDB, and search through the resulting data
-	var data = hdbSqlQuery(sql, userp);
+	var data = tryHDBSqlQuery(sql, userp, cfgp);
 	var fields = []; // the schema fields, in order, in a simpler format
 	var findex = {}; // the schema field indexes, by name
 	var llr = /^-?\d+(\.\d*)?,\s*-?\d+(\.\d*)?$/; // Lat,Long string capture
@@ -330,6 +372,7 @@ function getData(request) {
 
 	// Note that the max records returned by this function to GDS is 1 million.
 
+	var cc = DataStudioApp.createCommunityConnector();
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = getSqlFromConfig(cfgp);
@@ -340,7 +383,7 @@ function getData(request) {
 		sql = sqlLimit(sql, 100);
 	}
 	// fetch data from HarperDB
-	var data = hdbSqlQuery(sql, userp);
+	var data = tryHDBSqlQuery(sql, userp, cfgp);
 
 	// get our hash prefix for persistent storage
 	var pfx = getHashFromConfig(cfgp) + ":";
@@ -431,12 +474,65 @@ function getHashFromConfig(cfgp) {
 function getSqlFromConfig(cfgp) {
 	// either retrieves the (trimmed) SQL from config params,
 	// or builds the SQL from a schema.table pair.
+	// throws a relevant error if SQL data is blank.
 	var sql;
-	if(cfgp.sql) {
+	if(cfgp.queryType == "SQL" && cfgp.sql) {
 		sql = sqlStrip(cfgp.sql);
-	} else {
+	} else if(cfgp.queryType == "TABLE" && cfgp.schema && cfgp.table) {
 		// construct sql from schema and table pair
 		sql = "SELECT * FROM `" + cfgp.schema + "`.`" + cfgp.table + "`";
+	} else {
+		// we have blanks in necessary data fields!
+		let cc = DataStudioApp.createCommunityConnector();
+		if(cfgp.queryType == "SQL") {
+			cc.newUserError()
+			.setText("SQL Query field cannot be left blank!"
+				+ " Please correct the configuration.")
+			.throwException();
+		} else if(cfgp.queryType == "TABLE") {
+			let errstr = ""
+			if(!cfgp.schema && !cfgp.table) {
+				errstr = "Both Schema and Table fields are blank!"
+			} else if(!cfgp.schema) {
+				errstr = "Schema field was left blank!"
+			} else {
+				errstr = "Table field was left blank!"
+			}
+			cc.newUserError()
+			.setText(errstr + " Please correct the configuration.")
+			.throwException();
+		} else {
+			cc.newUserError()
+			.setText("Illegal Query Type! Type must be SQL or Table."
+				+ " Please correct the configuration.")
+			.throwException();
+		}
 	}
 	return sql;
+}
+
+function tryHDBSqlQuery(sql, userp, cfgp) {
+	// Catches any errors that come from hdbSqlQuery, adding some
+	// meaningful context for users to act on the error.
+	// returns the data response if there are no errors.
+	let data;
+	let cc = DataStudioApp.createCommunityConnector();
+	try {
+		data = hdbSqlQuery(sql, userp);
+	} catch (e) {
+		// got an error; set context according to the configuration settings
+		let context;
+		if(cfgp.queryType == "SQL") {
+			context = "If there is an SQL error below,"
+				+ " note that schema detection for reports uses limit 100.\n"
+		} else {
+			// Table type query
+			context = "Schema or Table either does not exist,"
+				+ " or this user is not permitted to read it.\n"
+		}
+		cc.newUserError()
+		.setText(context + "Error from HarperDB: response " + e.message)
+		.throwException();
+	}
+	return data;
 }
