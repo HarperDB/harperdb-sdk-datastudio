@@ -372,7 +372,6 @@ function getData(request) {
 
 	// Note that the max records returned by this function to GDS is 1 million.
 
-	var cc = DataStudioApp.createCommunityConnector();
 	var cfgp = request.configParams;
 	var userp = PropertiesService.getUserProperties();
 	var sql = getSqlFromConfig(cfgp);

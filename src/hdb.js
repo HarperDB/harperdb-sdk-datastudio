@@ -82,7 +82,7 @@ function hdbHandleError(r) {
 	let d;
 	try {
 		d = JSON.parse(j);
-	} catch (e) {
+	} catch (err) {
 		// contents are not valid JSON; we'll grab the entire text instead.
 		d = {};
 	}
