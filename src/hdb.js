@@ -71,7 +71,6 @@ function hdbHandleError(r) {
 	// takes r, a response from UrlFetchApp (in HTTPResponse form)
 	// returns nothing
 	// will throw a user error to GDS if the response code is not 200.
-	var cc = DataStudioApp.createCommunityConnector();
 	var code = r.getResponseCode();
 
 	if(code === 200) {
@@ -80,16 +79,20 @@ function hdbHandleError(r) {
 
 	// otherwise, we need to handle the error.
 	let j = r.getContentText();
-	let d = JSON.parse(j);
+	let d;
+	try {
+		d = JSON.parse(j);
+	} catch (err) {
+		// contents are not valid JSON; we'll grab the entire text instead.
+		d = {};
+	}
 	let e;
 	if("error" in d) {
 		e = d.error; // HDB default error codes are text in this key.
 	} else {
 		e = r.getContentText(); // just in case a non-standard error appears!
 	}
-	cc.newUserError()
-	.setText(code + ': "' + e + '"')
-	.throwException();
+	throw new Error(code + ': "' + e + '"')
 }
 
 function hdbSqlQuery(sql, userp) {
